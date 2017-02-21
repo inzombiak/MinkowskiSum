@@ -80,8 +80,8 @@ bool sfmath::IsReflex(const sf::Vector2f& p, const sf::Vector2f& prev, const sf:
 	vec2 = next - p;
 
 	angle = atan2(sfmath::Cross(vec1, vec2), sfmath::Dot(vec1, vec2));
-
-	if (angle > 0 && counterClockwise)
+	printf("Angle: %lf \n", angle);
+	if (angle > 0)
 		return false;
 
 	return true;

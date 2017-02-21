@@ -154,15 +154,14 @@ void GridManager::CreateShape()
 		return;
 
 	m_shoelaceSum += (m_shapeVertexPos[0].x - m_shapeVertexPos[m_shapeVertexPos.size() - 1].x)*(m_shapeVertexPos[0].y + m_shapeVertexPos[m_shapeVertexPos.size() - 1].y);
-	if (m_shoelaceSum > 0)
+	if (m_shoelaceSum < 0)
 	{
+		printf("c \n");
 		std::reverse(std::begin(m_shapeVertexPos), std::end(m_shapeVertexPos));
 	}
 
 	sf::ConvexShape shape;
 	shape.setPointCount(m_shapeVertexPos.size() + 1);
-
-	
 	bool isConcave = false;
 	int pointCount = m_shapeVertexPos.size();
 
@@ -435,7 +434,7 @@ bool GridManager::IsEar(const Node& n, const std::vector<Node>& nodes)
 	for (unsigned int j = 0; j < nodes.size(); ++j)
 	{
 		if (nodes[j].index != n.index &&  nodes[j].index != n.next && nodes[j].index != n.prev)
-			if (sfmath::PointInTriangle(m_shapeVertexPos[n.index], m_shapeVertexPos[n.next], m_shapeVertexPos[n.prev], m_shapeVertexPos[nodes[j].index]))
+			if (sfmath::PointInTriangle(m_shapeVertexPos[n.index], m_shapeVertexPos[n.prev], m_shapeVertexPos[n.next], m_shapeVertexPos[nodes[j].index]))
 			{
 				isEar = false;
 				break;
@@ -467,17 +466,6 @@ void GridManager::CreateConcaveShape()
 		nodes[i].index = i;
 		nodes[i].prev = (i - 1) % pointCount;
 		nodes[i].next = (i + 1) % pointCount;
-
-
-		if (sfmath::IsReflex(nodes[i].value, nodes[nodes[i].prev].value, nodes[nodes[i].next].value))
-		{
-			reflexVertices[i] = i;
-			nodes[i].isReflex = true;
-		}
-		else
-		{
-			convexVertices[i] = i;
-		}
 	}
 	/*
 	Just in case passing nodes vector starts shwoing bugs, gonna save this.
@@ -489,6 +477,19 @@ void GridManager::CreateConcaveShape()
 	{
 		for (unsigned int i = 0; i < pointCount; ++i)
 		{
+
+			printf("%i \n", i);
+			if (sfmath::IsReflex(nodes[i].value, nodes[nodes[i].prev].value, nodes[nodes[i].next].value))
+			{
+				reflexVertices[i] = i;
+				nodes[i].isReflex = true;
+				printf(" %i is reflex \n", i);
+			}
+			else
+			{
+				convexVertices[i] = i;
+			}
+
 			if (!nodes[i].isReflex)
 				if (IsEar(nodes[i], nodes))
 					ears[i] = i;
