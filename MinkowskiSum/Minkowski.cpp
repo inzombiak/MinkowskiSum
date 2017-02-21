@@ -30,14 +30,14 @@ std::vector<sf::Vector2f> Minkowski::ReducedConvolution(const std::vector<sf::Ve
 	{
 		e.a = verticesA[i];
 		e.b = verticesA[(i + 1) % AVertexCount];
-		if (aIsConcave)
-		{
-			//TOD: Store reflex vertices in shape maybe?
-			if (sfmath::IsReflex(verticesA[i], verticesA[(i - 1) % AVertexCount], verticesA[(i + 1) % AVertexCount]))
-				continue;
-		}
 		for (unsigned j = 0; j < BVertexCountB; ++j)
 		{
+			if (bIsConcave)
+			{
+				//TOD: Store reflex vertices in shape maybe?
+				if (sfmath::IsReflex(verticesB[j], verticesB[(j - 1) % BVertexCountB], verticesB[(j + 1) % BVertexCountB]))
+					continue;
+			}
 			e1.a = verticesB[j];
 			e1.b = verticesB[(j + 1) % BVertexCountB];
 
@@ -63,14 +63,16 @@ std::vector<sf::Vector2f> Minkowski::ReducedConvolution(const std::vector<sf::Ve
 
 		e.a = verticesB[i];
 		e.b = verticesB[(i + 1) % BVertexCountB];
-		if (bIsConcave)
-		{
-			//TOD: Store reflex vertices in shape maybe?
-			if (sfmath::IsReflex(verticesB[i], verticesB[(i - 1) % BVertexCountB], verticesB[(i + 1) % BVertexCountB]))
-				continue;
-		}
+
 		for (unsigned j = 0; j < AVertexCount; ++j)
 		{
+			if (aIsConcave)
+			{
+				//TOD: Store reflex vertices in shape maybe?
+				if (sfmath::IsReflex(verticesA[j], verticesA[(j - 1) % AVertexCount], verticesA[(j + 1) % AVertexCount]))
+					continue;
+			}
+
 			e1.a = verticesA[j];
 			e1.b = verticesA[(j + 1) % AVertexCount];
 
