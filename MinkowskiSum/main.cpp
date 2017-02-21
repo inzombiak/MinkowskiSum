@@ -5,11 +5,20 @@
 const int WINDOW_HEIGHT = 800;
 const int WINDOW_WIDTH = 800;
 
+enum InputState
+{
+	DrawingShape,
+	SelectingShape
+};
+
+InputState m_state = DrawingShape;
+
 int main()
 {
 	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Minkowski Sum!");
 	GridManager gm;
 	gm.GenerateGrid(WINDOW_WIDTH, WINDOW_HEIGHT, 41, 41);
+	gm.ShowPointer(true);
 	while (window.isOpen())
 	{
 		sf::Event event;
@@ -20,29 +29,26 @@ int main()
 			if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
 			{
 				//Place points
-<<<<<<< HEAD
-<<<<<<< HEAD
-				gm.AddVertex();
-=======
 				if (m_state == DrawingShape)
 					gm.AddVertex();
 				else if (m_state == SelectingShape)
-					gm.SelectShape(sf::Vector2f(event.mouseButton.x, event.mouseButton.y));
->>>>>>> parent of 0dbf6c8... Added Convolution, still need to do loops and sum
-=======
-				gm.AddVertex();
->>>>>>> parent of 5923412... Added convex shape picking, now to add minkowski sum
+				{
+					if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+						gm.MarkShape(sf::Vector2f(event.mouseButton.x, event.mouseButton.y));
+					else
+						gm.SelectShape(sf::Vector2f(event.mouseButton.x, event.mouseButton.y));
+				}
 			}
 			if (event.type == sf::Event::MouseMoved)
 			{
-				gm.MoveDot(sf::Vector2i(event.mouseMove.x, event.mouseMove.y));
+				if (m_state == DrawingShape)
+					gm.MoveDot(sf::Vector2f(event.mouseMove.x, event.mouseMove.y));
+				else if (m_state == SelectingShape && sf::Mouse::isButtonPressed(sf::Mouse::Left))
+					gm.MoveShape(sf::Vector2f(event.mouseMove.x, event.mouseMove.y));
+					
 			}
-			if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space)
+			if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left)
 			{
-<<<<<<< HEAD
-<<<<<<< HEAD
-				gm.CreateShape();
-=======
 				if (m_state == SelectingShape)
 					gm.DropShape();
 			}
@@ -52,6 +58,16 @@ int main()
 				{
 					if (m_state == DrawingShape)
 						gm.CreateShape();
+				}
+				else if (event.key.code == sf::Keyboard::Equal || event.key.code == sf::Keyboard::Add)
+				{
+					if (m_state == SelectingShape)
+						gm.CreateMinkoswkiSum();
+				}
+				else if (event.key.code == sf::Keyboard::Subtract || event.key.code == sf::Keyboard::Dash)
+				{
+					if (m_state == SelectingShape)
+						gm.CreateMinkowskiDifference();
 				}
 				else if (event.key.code == sf::Keyboard::Delete || event.key.code == sf::Keyboard::BackSpace)
 				{
@@ -72,10 +88,6 @@ int main()
 					}
 
 				}
->>>>>>> parent of 0dbf6c8... Added Convolution, still need to do loops and sum
-=======
-				gm.CreateShape();
->>>>>>> parent of 5923412... Added convex shape picking, now to add minkowski sum
 			}
 		}
 

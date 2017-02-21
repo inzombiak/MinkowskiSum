@@ -3,21 +3,12 @@
 
 #include <vector>
 #include <queue>
+
 #include "ConcaveShape.h"
-<<<<<<< HEAD
+#include "ConvexShape.h"
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-//TODO: Merge convex and concave into a single hierarchy
-
->>>>>>> parent of 0dbf6c8... Added Convolution, still need to do loops and sum
-=======
-//TODO: Merge convex and concave into a single hierarchy
-=======
->>>>>>> parent of 5923412... Added convex shape picking, now to add minkowski sum
-
->>>>>>> parent of 0dbf6c8... Added Convolution, still need to do loops and sum
+//TODO: Since i was using int,ShapeType for shape selecting then changed to pointers, 
+//there is inconsistency. Need to change currentshape to pointer also.
 class GridManager
 {
 
@@ -29,29 +20,24 @@ public:
 	void Draw(sf::RenderWindow& rw);
 
 	void AddVertex();
-<<<<<<< HEAD
-<<<<<<< HEAD
-	void MoveDot(const sf::Vector2i& mousePos);
-	void CreateShape();
-=======
 	void SelectShape(const sf::Vector2f& mousePos);
+	void MarkShape(const sf::Vector2f& mousePos);
 
 	void DropShape();
 
 	void MoveDot(const sf::Vector2f& mousePos);
 	void MoveShape(const sf::Vector2f& mousePos);
 	void CreateShape();
-
+	void CreateMinkoswkiSum();
+	void CreateMinkowskiDifference();
 	void ShowPointer(bool val);
 	void DeleteCurrentShape();
 
 
->>>>>>> parent of 0dbf6c8... Added Convolution, still need to do loops and sum
-=======
-	void MoveDot(const sf::Vector2i& mousePos);
-	void CreateShape();
->>>>>>> parent of 5923412... Added convex shape picking, now to add minkowski sum
 private:
+	//TODO: Should asssign to a pointer not to m_currentShape(which should be a pointer)
+	bool GetShapeContainingPoint(const sf::Vector2f& point);
+
 	struct Node
 	{
 		sf::Vector2f value;
@@ -62,22 +48,11 @@ private:
 		int index;
 	};
 
-	bool IsReflex(const Node& n);
-	bool IsEar(const Node& n, const std::vector<int>& vertices);
+	bool IsEar(const Node& n, const std::vector<Node>& nodes);
 	void CreateConcaveShape();
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-	sf::Vector2i SnapToGrid(const sf::Vector2i& pos);
-=======
-=======
->>>>>>> parent of 0dbf6c8... Added Convolution, still need to do loops and sum
+
 	sf::Vector2i SnapToGrid(const sf::Vector2f& pos);
->>>>>>> parent of 0dbf6c8... Added Convolution, still need to do loops and sum
-=======
-	sf::Vector2i SnapToGrid(const sf::Vector2i& pos);
->>>>>>> parent of 5923412... Added convex shape picking, now to add minkowski sum
 
 	int m_windowHeight;
 	int m_windowWidth;
@@ -85,54 +60,36 @@ private:
 	int m_columnCount;
 	float m_xSpacing;
 	float m_ySpacing;
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 
-=======
-=======
->>>>>>> parent of 0dbf6c8... Added Convolution, still need to do loops and sum
+	
 	std::pair<int, ShapeType> m_currentShape = std::make_pair(-1, ShapeType::Concave);
-	bool m_drawPointer;
->>>>>>> parent of 0dbf6c8... Added Convolution, still need to do loops and sum
-=======
+	std::pair<int, ShapeType> m_shapeA = std::make_pair(-1, ShapeType::Concave);
+	std::pair<int, ShapeType> m_shapeB = std::make_pair(-1, ShapeType::Concave);
 
->>>>>>> parent of 5923412... Added convex shape picking, now to add minkowski sum
+	bool m_drawPointer;
 	sf::CircleShape m_pointer;
 
 	std::vector<sf::RectangleShape> m_gridLines;
 	std::vector<sf::Vector2f> m_shapeVertexPos;
-	std::vector<sf::CircleShape> m_shapeVertiecies;
-<<<<<<< HEAD
+	std::vector<sf::CircleShape> m_shapeVertices;
 
-<<<<<<< HEAD
-	std::vector<sf::ConvexShape> m_convexShapes;
-	std::vector<ConcaveShape> m_concaveShapes;
-=======
->>>>>>> parent of 0dbf6c8... Added Convolution, still need to do loops and sum
+	std::vector<sf::Vector2f> m_convolutionEdges;
 
-<<<<<<< HEAD
-=======
 	std::vector<ConvexShape> m_convexShapes;
 	std::vector<ConcaveShape> m_concaveShapes;
 
 	std::queue<int> m_unusedConvexShapes;
 	std::queue<int> m_unusedConcaveShapes;
 
-<<<<<<< HEAD
->>>>>>> parent of 0dbf6c8... Added Convolution, still need to do loops and sum
-=======
->>>>>>> parent of 0dbf6c8... Added Convolution, still need to do loops and sum
-=======
-	std::vector<sf::ConvexShape> m_convexShapes;
-	std::vector<ConcaveShape> m_concaveShapes;
-
->>>>>>> parent of 5923412... Added convex shape picking, now to add minkowski sum
-	bool m_verticesAreClockwise = false;
 	float m_shoelaceSum = 0;
 
 	static const int LINE_WIDTH = 2;
 	static const int CIRCLE_RADIUS = 4;
+
+	static const sf::Color MARKED_A;
+	static const sf::Color MARKED_B;
+	sf::Vector2f ORIGIN_OFFSET;
+	sf::Font m_labelFont;
 };
 
 #endif

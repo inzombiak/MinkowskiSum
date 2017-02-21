@@ -56,8 +56,6 @@ bool sfmath::PointInTriangle(const sf::Vector2f& p0, const sf::Vector2f& p1, con
 bool sfmath::RayLineIntersect(const Ray& ray, const sf::Vector2f a, const sf::Vector2f b)
 {
 	//Read this http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect/565282#565282
-
-
 	//The direction of the line, normalized
 	sf::Vector2f lineDir = b - a;
 
@@ -72,4 +70,30 @@ bool sfmath::RayLineIntersect(const Ray& ray, const sf::Vector2f a, const sf::Ve
 
 	//Since t is for ray it just needs to be >= 0 and u needs to between 0 and 1
 	return (t >= 0 & u >= 0 & u <= 1);
+}
+
+bool sfmath::IsReflex(const sf::Vector2f& p, const sf::Vector2f& prev, const sf::Vector2f& next, bool counterClockwise)
+{
+	sf::Vector2f vec1, vec2;
+	float angle;
+	vec1 = prev - p;
+	vec2 = next - p;
+
+	angle = atan2(sfmath::Cross(vec1, vec2), sfmath::Dot(vec1, vec2));
+
+	if (angle > 0 && counterClockwise)
+		return false;
+
+	return true;
+}
+
+std::vector<sf::Vector2f> sfmath::InvertShape(const std::vector<sf::Vector2f>& vertices, sf::Vector2f origin)
+{
+	std::vector<sf::Vector2f> result;
+	result.reserve(vertices.size());
+	for (unsigned int i = 0; i < vertices.size(); ++i)
+	{
+		result.push_back(2.f*origin - vertices[i]);
+	}
+	return result;
 }

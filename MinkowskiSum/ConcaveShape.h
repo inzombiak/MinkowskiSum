@@ -1,25 +1,22 @@
 #ifndef CONCAVE_SHAPE_H
 #define CONCAVE_SHAPE_H
 
-#include "SFML\Graphics.hpp"
+#include "IShape.h"
 
-class ConcaveShape
+class ConcaveShape : public IShape
 {
 public:
+
 	ConcaveShape(const std::vector<sf::ConvexShape>& shapes, const std::vector<sf::Vector2f>& vertices);
 	~ConcaveShape();
 
-	void SetPosition(const sf::Vector2f& newPos);
+	bool ContainsPoint(const sf::Vector2f& point) override;
+	void SetPosition(const sf::Vector2f& newPos) override;
 	void SetFillColor(const sf::Color& newColor);
+	void Draw(sf::RenderWindow& rw) override;
 
-	void Draw(sf::RenderWindow& rw);
-
-private:
-	void CalcCentroid();
-
-	std::vector<sf::Vector2f> m_vertices;
+private:;
 	std::vector<sf::ConvexShape> m_shapes;
-	sf::Vector2f m_currentPosition;
 };
 
 #endif
