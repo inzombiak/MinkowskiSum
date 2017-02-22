@@ -22,5 +22,8 @@ I'll probably add buttons later, but until then
 SFML for rendering.
 
 ## Refrences:
- * Ear Clipping - Eberly, David. "Triangulation by ear clipping." Geometric Tools (2008). [(link)](https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf)
- * Minkowski Sum/Difference - Behar, Evan, and Jyh-Ming Lien. "Fast and robust 2d minkowski sum using reduced convolution." Intelligent Robots and Systems (IROS), 2011 IEEE/RSJ International Conference on. IEEE, 2011.[(link)](http://masc.cs.gmu.edu/wiki/uploads/ReducedConvolution/iros11-mksum2d.pdf)
+ * Ear Clipping
+  * Eberly, David. "Triangulation by ear clipping." Geometric Tools (2008). [(link)](https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf)
+ * Minkowski Sum/Difference
+  * Behar, Evan, and Jyh-Ming Lien. "Fast and robust 2d minkowski sum using reduced convolution." Intelligent Robots and Systems (IROS), 2011 IEEE/RSJ International Conference on. IEEE, 2011.[(link)](http://masc.cs.gmu.edu/wiki/uploads/ReducedConvolution/iros11-mksum2d.pdf)
+  * Wein, Ron. "Exact and efficient construction of planar Minkowski sums using the convolution method." European symposium on algorithms. Springer Berlin Heidelberg, 2006. [(link)](https://pdfs.semanticscholar.org/b049/3b89b18d785ca81427404ec78d7ce6602ceb.pdf)

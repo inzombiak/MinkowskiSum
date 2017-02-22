@@ -161,7 +161,7 @@ void GridManager::CreateShape()
 	}
 
 	sf::ConvexShape shape;
-	shape.setPointCount(m_shapeVertexPos.size() + 1);
+	shape.setPointCount(m_shapeVertexPos.size());
 	bool isConcave = false;
 	int pointCount = m_shapeVertexPos.size();
 
@@ -215,7 +215,6 @@ void GridManager::CreateShape()
 	}
 	else
 	{
-		shape.setPoint(pointCount, m_shapeVertexPos[0]);
 		shape.setFillColor(sf::Color(125, 125, 0, 50));
 		ConvexShape cs(shape);
 		cs.SetFont(m_labelFont);
@@ -425,6 +424,7 @@ void GridManager::CreateMinkowskiDifference()
 
 	m_convolutionEdges = Minkowski::ReducedConvolution(shapeA->GetVerticies(), shapeA->GetType() == Concave,
 													   sfmath::InvertShape(shapeB->GetVerticies(), ORIGIN_OFFSET), shapeB->GetType() == Concave);
+
 }
 
 bool GridManager::IsEar(const Node& n, const std::vector<Node>& nodes)
