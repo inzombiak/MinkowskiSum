@@ -2,13 +2,14 @@
 
 #include "Math.h"
 
-ConcaveShape::ConcaveShape(const std::vector<sf::ConvexShape>& shapes, const std::vector<sf::Vector2f>& vertices)
+ConcaveShape::ConcaveShape(const std::vector<sf::ConvexShape>& shapes, const std::vector<sf::Vector2f>& vertices, const std::vector<int>& reflexVertices)
 {
 	m_shapes = shapes;
 	SetFillColor(UNSELECTED_COLOR);
 	m_vertices = vertices;
 	CalcCentroid();
 	m_shapeType = Concave;
+	m_reflexVertices = reflexVertices;
 }
 
 ConcaveShape::~ConcaveShape()
@@ -75,4 +76,9 @@ bool ConcaveShape::ContainsPoint(const sf::Vector2f& point)
 
 	}
 	return result;
+}
+
+std::vector<int> ConcaveShape::GetReflexIndices() const
+{
+	return m_reflexVertices;
 }

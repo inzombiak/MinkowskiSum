@@ -107,10 +107,20 @@ void GridManager::AddVertex()
 	vertex.setPosition(sf::Vector2f(m_pointer.getPosition()));
 	m_shapeVertices.push_back(vertex);
 
-	//Shoelace formula
+	//Shoelace formula/Concave check
 	int currVertex = m_shapeVertexPos.size() - 1;
 	if (currVertex > 0)
+	{
 		m_shoelaceSum += (m_shapeVertexPos[currVertex].x - m_shapeVertexPos[currVertex - 1].x)*(m_shapeVertexPos[currVertex].y + m_shapeVertexPos[currVertex - 1].y);
+		if (currVertex > 1)
+		{
+			if (!m_shapeIsConcave && sfmath::IsReflex(m_shapeVertexPos[currVertex - 1], m_shapeVertexPos[currVertex - 2], m_shapeVertexPos[currVertex]))
+			{
+				m_shapeIsConcave = true;
+			}
+		}
+	}
+		
 }
 
 void GridManager::MoveDot(const sf::Vector2f& mousePos)
@@ -121,7 +131,7 @@ void GridManager::MoveDot(const sf::Vector2f& mousePos)
 
 void GridManager::MoveShape(const sf::Vector2f& mousePos)
 {
-	if (m_currentShape.first == -1)
+	if (m_currentShape == NULL_SHAPE)
 		return;
 	if (m_currentShape.second == Concave)
 		m_concaveShapes[m_currentShape.first].SetPosition(mousePos);
@@ -131,13 +141,13 @@ void GridManager::MoveShape(const sf::Vector2f& mousePos)
 
 void GridManager::DropShape()
 {
-	if (m_currentShape.first == -1)
+	if (m_currentShape == NULL_SHAPE)
 		return;
 	if (m_currentShape.second == Concave)
 		m_concaveShapes[m_currentShape.first].Selected(false, sf::Vector2f(0, 0));
 	else
 		m_convexShapes[m_currentShape.first].Selected(false, sf::Vector2f(0, 0));
-	m_currentShape.first = -1;
+	m_currentShape = NULL_SHAPE;
 }
 
 sf::Vector2i GridManager::SnapToGrid(const sf::Vector2f& pos)
@@ -152,85 +162,21 @@ void GridManager::CreateShape()
 {
 	if (m_shapeVertexPos.size() <= 2)
 		return;
-
-	m_shoelaceSum += (m_shapeVertexPos[0].x - m_shapeVertexPos[m_shapeVertexPos.size() - 1].x)*(m_shapeVertexPos[0].y + m_shapeVertexPos[m_shapeVertexPos.size() - 1].y);
+	int vertexCount = m_shapeVertexPos.size();
+	m_shoelaceSum += (m_shapeVertexPos[0].x - m_shapeVertexPos[vertexCount - 1].x)*(m_shapeVertexPos[0].y + m_shapeVertexPos[vertexCount - 1].y);
 	if (m_shoelaceSum < 0)
-	{
-		printf("c \n");
 		std::reverse(std::begin(m_shapeVertexPos), std::end(m_shapeVertexPos));
-	}
+	if (!m_shapeIsConcave && sfmath::IsReflex(m_shapeVertexPos[0], m_shapeVertexPos[vertexCount - 1], m_shapeVertexPos[1]))
+		m_shapeIsConcave = true;
 
-	sf::ConvexShape shape;
-	shape.setPointCount(m_shapeVertexPos.size());
-	bool isConcave = false;
-	int pointCount = m_shapeVertexPos.size();
-
-	//
-
-	/*
-	sf::Vector2f prevVec = m_shapeVertexPos[1] - m_shapeVertexPos[0];
-	sf::Vector2f currVec = m_shapeVertexPos[2] - m_shapeVertexPos[1];
-	shape.setPoint(0, m_shapeVertexPos[0]);
-	shape.setPoint(1, m_shapeVertexPos[1]);
-	shape.setPoint(2, m_shapeVertexPos[2]);
-
-	float prevCross = sfmath::Cross(prevVec, currVec);
-	float currCross;
-	for (unsigned int i = 3; i <= pointCount; ++i)
-	{
-		prevVec = currVec;
-		currVec = m_shapeVertexPos[i % pointCount] - m_shapeVertexPos[(i - 1) % pointCount];
-		currCross = sfmath::Cross(prevVec, currVec);
-		if ((prevCross < 0) != (currCross < 0))
-		{
-			isConcave = true;
-			break;
-		}
-		else
-		{
-			shape.setPoint(i, m_shapeVertexPos[i % pointCount]);
-		}
-		
-		prevCross = currCross;
-	}*/
-
-	for (unsigned int i = 0; i < pointCount; ++i)
-	{
-		if (sfmath::IsReflex(m_shapeVertexPos[i], m_shapeVertexPos[(i - 1) % pointCount], m_shapeVertexPos[(i + 1) % pointCount]))
-		{
-			isConcave = true;
-			break;
-		}
-		else
-		{
-			shape.setPoint(i, m_shapeVertexPos[i]);
-		}
-
-	}
-
-	if (isConcave)
-	{
-		//TODO change this so we dont start over from scratch for concave
-		CreateConcaveShape();
-	}
+	if (m_shapeIsConcave)
+		CreateConcaveShape(m_shapeVertexPos);
 	else
-	{
-		shape.setFillColor(sf::Color(125, 125, 0, 50));
-		ConvexShape cs(shape);
-		cs.SetFont(m_labelFont);
-		if (!m_unusedConvexShapes.empty())
-		{
-			int index = m_unusedConvexShapes.front();
-			m_convexShapes[index] = cs;
-			m_unusedConvexShapes.pop();
-		}
-		else
-			m_convexShapes.push_back(cs);
-	}
+		CreateConvexShape(m_shapeVertexPos);
 
-	m_shapeVertexPos.clear();
 	m_shapeVertices.clear();
-
+	m_shapeVertexPos.clear();
+	m_shapeIsConcave = false;
 	m_shoelaceSum = 0;
 }
 
@@ -241,26 +187,16 @@ void GridManager::ShowPointer(bool val)
 
 void GridManager::DeleteCurrentShape()
 {
-	if (m_currentShape.first == -1)
+	if (m_currentShape == NULL_SHAPE)
 		return;
 
-	if (m_currentShape.second == Concave)
-	{
-		m_concaveShapes[m_currentShape.first].SetInUse(false);
-		m_unusedConcaveShapes.push(m_currentShape.first);
-	}
-	else if (m_currentShape.second == Convex)
-	{
-		m_convexShapes[m_currentShape.first].SetInUse(false);
-		m_unusedConvexShapes.push(m_currentShape.first);
-	}
-
+	DeleteShape(m_currentShape);
 }
 
 //TODO: Clean up
 void GridManager::SelectShape(const sf::Vector2f& mousePos)
 {
-	if (m_currentShape.first != -1)
+	if (m_currentShape != NULL_SHAPE)
 		if (m_currentShape.second == Concave)
 			m_concaveShapes[m_currentShape.first].Selected(false, sf::Vector2f(0, 0));
 		else
@@ -374,7 +310,7 @@ void GridManager::MarkShape(const sf::Vector2f& mousePos)
 		}
 	}
 
-	m_currentShape.first = -1;
+	m_currentShape = NULL_SHAPE;
 }
 
 //See http://masc.cs.gmu.edu/wiki/uploads/ReducedConvolution/iros11-mksum2d.pdf
@@ -384,19 +320,29 @@ void GridManager::CreateMinkoswkiSum()
 	if (m_shapeA.first == -1 || m_shapeB.first == -1)
 		return;
 
+	//Not the best way, but will do until I clean
+	std::vector<int> aReflex;
+	std::vector<int> bReflex;
+
 	IShape* shapeA = 0;
 	if (m_shapeA.second == Concave)
+	{
 		shapeA = &m_concaveShapes[m_shapeA.first];
+		aReflex = ((ConcaveShape*)shapeA)->GetReflexIndices();
+	}
 	else
 		shapeA = &m_convexShapes[m_shapeA.first];
 	IShape* shapeB = 0;
 	if (m_shapeB.second == Concave)
+	{
 		shapeB = &m_concaveShapes[m_shapeB.first];
+		bReflex = ((ConcaveShape*)shapeB)->GetReflexIndices();
+	}
 	else
 		shapeB = &m_convexShapes[m_shapeB.first];
 
-	m_convolutionEdges = Minkowski::ReducedConvolution(	shapeA->GetVerticies(), shapeA->GetType() == Concave,
-														shapeB->GetVerticies(), shapeB->GetType() == Concave);
+	m_convolutionEdges = m_minkowskiCalculator.MinkoswkiSum(shapeA->GetVerticies(), aReflex,
+															shapeB->GetVerticies(), bReflex);
 	//Reduced convolution
 	//std::vector<sf::Vector2f> convolutionEdges;
 
@@ -411,30 +357,55 @@ void GridManager::CreateMinkowskiDifference()
 	if (m_shapeA.first == -1 || m_shapeB.first == -1)
 		return;
 
+	//Not the best way, but will do until I clean
+	std::vector<int> aReflex;
+	std::vector<int> bReflex;
+
 	IShape* shapeA = 0;
 	if (m_shapeA.second == Concave)
+	{
 		shapeA = &m_concaveShapes[m_shapeA.first];
+		aReflex = ((ConcaveShape*)shapeA)->GetReflexIndices();
+	}
 	else
 		shapeA = &m_convexShapes[m_shapeA.first];
 	IShape* shapeB = 0;
 	if (m_shapeB.second == Concave)
+	{
 		shapeB = &m_concaveShapes[m_shapeB.first];
+		bReflex = ((ConcaveShape*)shapeB)->GetReflexIndices();
+	}
 	else
 		shapeB = &m_convexShapes[m_shapeB.first];
 
-	m_convolutionEdges = Minkowski::ReducedConvolution(shapeA->GetVerticies(), shapeA->GetType() == Concave,
-													   sfmath::InvertShape(shapeB->GetVerticies(), ORIGIN_OFFSET), shapeB->GetType() == Concave);
+	auto invertedB = sfmath::InvertShape(shapeB->GetVerticies(), ORIGIN_OFFSET);
+	m_convolutionEdges = m_minkowskiCalculator.MinkoswkiSum(shapeA->GetVerticies(), aReflex,
+															invertedB, bReflex);
+	if (m_invertedB != NULL_SHAPE)
+		DeleteShape(m_invertedB);
+
+	m_invertedB.second = m_shapeB.second;
+	if (m_shapeB.second == Concave)
+	{
+		CreateConcaveShape(invertedB);
+		m_invertedB.first = m_concaveShapes.size() - 1;
+	}
+	else
+	{
+		CreateConvexShape(invertedB);
+		m_invertedB.first = m_convexShapes.size() - 1;
+	}
 
 }
 
-bool GridManager::IsEar(const Node& n, const std::vector<Node>& nodes)
+bool GridManager::IsEar(const Node& n, const std::vector<Node>& nodes, const std::vector<sf::Vector2f>& vertices)
 {
 	bool isEar = true;
 
 	for (unsigned int j = 0; j < nodes.size(); ++j)
 	{
 		if (nodes[j].index != n.index &&  nodes[j].index != n.next && nodes[j].index != n.prev)
-			if (sfmath::PointInTriangle(m_shapeVertexPos[n.index], m_shapeVertexPos[n.prev], m_shapeVertexPos[n.next], m_shapeVertexPos[nodes[j].index]))
+			if (sfmath::PointInTriangle(vertices[n.index], vertices[n.prev], vertices[n.next], vertices[nodes[j].index]))
 			{
 				isEar = false;
 				break;
@@ -445,27 +416,28 @@ bool GridManager::IsEar(const Node& n, const std::vector<Node>& nodes)
 }
 
 //See https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf for ear clipping
-void GridManager::CreateConcaveShape()
+void GridManager::CreateConcaveShape(const std::vector<sf::Vector2f>& vertices)
 {
 	//Used ear clipping method to decompose polygon
 
-	int pointCount = m_shapeVertexPos.size();
+	int pointCount = vertices.size();
 	std::vector<sf::ConvexShape> shapes;
 	std::vector<Node> nodes;
 	nodes.resize(pointCount);
-	std::vector<int> reflexVertices;
+	std::vector<int> reflexVertices; //for ear clipping
+	std::vector<int> reflexVerticesForShape; //to pass to shape for M-sum
 	reflexVertices.resize(pointCount, -1);
 	std::vector<int> convexVertices;
 	convexVertices.resize(pointCount, -1);
-	std::unordered_map<int,int> ears;
+	std::unordered_map<int, int> ears;
 
 
 	for (unsigned int i = 0; i < pointCount; ++i)
 	{
-		nodes[i].value = m_shapeVertexPos[i];
+		nodes[i].value = vertices[i];
 		nodes[i].index = i;
-		nodes[i].prev = (i - 1) % pointCount;
-		nodes[i].next = (i + 1) % pointCount;
+		nodes[i].prev = sfmath::Mod((i - 1), pointCount);
+		nodes[i].next = sfmath::Mod((i + 1), pointCount);
 	}
 	/*
 	Just in case passing nodes vector starts shwoing bugs, gonna save this.
@@ -482,6 +454,7 @@ void GridManager::CreateConcaveShape()
 			if (sfmath::IsReflex(nodes[i].value, nodes[nodes[i].prev].value, nodes[nodes[i].next].value))
 			{
 				reflexVertices[i] = i;
+				reflexVerticesForShape.push_back(i);
 				nodes[i].isReflex = true;
 				printf(" %i is reflex \n", i);
 			}
@@ -491,11 +464,11 @@ void GridManager::CreateConcaveShape()
 			}
 
 			if (!nodes[i].isReflex)
-				if (IsEar(nodes[i], nodes))
+				if (IsEar(nodes[i], nodes, vertices))
 					ears[i] = i;
 		}
 	}
-	
+
 
 	sf::ConvexShape cs;
 	int steps = 0;
@@ -540,26 +513,26 @@ void GridManager::CreateConcaveShape()
 		}
 
 		auto it = ears.begin();
-		while(it != ears.end())
+		while (it != ears.end())
 		{
-			if (!IsEar(nodes[it->second], nodes))
+			if (!IsEar(nodes[it->second], nodes, vertices))
 				it = ears.erase(it);
 			else
 				it++;
 		}
 
 		if (!nodes[prev].isReflex)
-			if (ears.find(prev) == ears.end() && IsEar(nodes[prev], nodes));
-				ears[prev] = prev;
+			if (ears.find(prev) == ears.end() && IsEar(nodes[prev], nodes, vertices));
+		ears[prev] = prev;
 
 		if (!nodes[next].isReflex)
-			if (ears.find(next) == ears.end() && IsEar(nodes[next], nodes));
-				ears[next] = next;
+			if (ears.find(next) == ears.end() && IsEar(nodes[next], nodes, vertices));
+		ears[next] = next;
 
 		steps++;
 	}
-	
-	ConcaveShape concaveShape(shapes, m_shapeVertexPos);
+
+	ConcaveShape concaveShape(shapes, vertices, reflexVerticesForShape);
 	concaveShape.SetFont(m_labelFont);
 	if (!m_unusedConcaveShapes.empty())
 	{
@@ -569,6 +542,39 @@ void GridManager::CreateConcaveShape()
 	}
 	else
 		m_concaveShapes.push_back(concaveShape);
+}
+
+void GridManager::CreateConvexShape(const std::vector<sf::Vector2f>& vertices)
+{
+	sf::ConvexShape shape;
+	shape.setPointCount(vertices.size());
+	bool isConcave = false;
+	int pointCount = vertices.size();
+	for (unsigned int i = 0; i < pointCount; ++i)
+	{
+		if (sfmath::IsReflex(vertices[i], vertices[sfmath::Mod((i - 1), pointCount)], vertices[sfmath::Mod((i + 1), pointCount)]))
+		{
+			isConcave = true;
+			break;
+		}
+		else
+		{
+			shape.setPoint(i, vertices[i]);
+		}
+
+	}
+
+	shape.setFillColor(sf::Color(125, 125, 0, 50));
+	ConvexShape cs(shape);
+	cs.SetFont(m_labelFont);
+	if (!m_unusedConvexShapes.empty())
+	{
+		int index = m_unusedConvexShapes.front();
+		m_convexShapes[index] = cs;
+		m_unusedConvexShapes.pop();
+	}
+	else
+		m_convexShapes.push_back(cs);
 }
 
 //TODO: BAD FUNCTION
@@ -604,9 +610,23 @@ bool GridManager::GetShapeContainingPoint(const sf::Vector2f& point)
 	}
 
 	if (!found)
-		m_currentShape.first = -1;
+		m_currentShape = NULL_SHAPE;
 
 	return found;
+}
+
+void GridManager::DeleteShape(std::pair<int, ShapeType> shapeDeets)
+{
+	if (shapeDeets.second == Concave)
+	{
+		m_concaveShapes[shapeDeets.first].SetInUse(false);
+		m_unusedConcaveShapes.push(shapeDeets.first);
+	}
+	else if (shapeDeets.second == Convex)
+	{
+		m_convexShapes[shapeDeets.first].SetInUse(false);
+		m_unusedConvexShapes.push(shapeDeets.first);
+	}
 }
 
 const sf::Color GridManager::MARKED_A = sf::Color(255, 0, 0, 255);

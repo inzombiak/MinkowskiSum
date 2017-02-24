@@ -4,10 +4,13 @@ float sfmath::Dot(const sf::Vector2f& v1, const sf::Vector2f& v2)
 {
 	return v1.x * v2.x + v1.y * v2.y;
 }
-
+float sfmath::Length2(const sf::Vector2f& v)
+{
+	return (v.x * v.x + v.y  * v.y);
+}
 float sfmath::Length(const sf::Vector2f& v)
 {
-	return sqrt(v.x * v.x + v.y  * v.y);
+	return sqrt(Length2(v));
 }
 
 float sfmath::Cross(const sf::Vector2f& v1, const sf::Vector2f& v2)
@@ -96,4 +99,9 @@ std::vector<sf::Vector2f> sfmath::InvertShape(const std::vector<sf::Vector2f>& v
 		result.push_back(2.f*origin - vertices[i]);
 	}
 	return result;
+}
+
+int sfmath::Mod(int i, int base)
+{
+	return ((i % base) + base) % base;
 }

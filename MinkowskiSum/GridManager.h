@@ -6,6 +6,7 @@
 
 #include "ConcaveShape.h"
 #include "ConvexShape.h"
+#include "Minkowski.h"
 
 //TODO: Since i was using int,ShapeType for shape selecting then changed to pointers, 
 //there is inconsistency. Need to change currentshape to pointer also.
@@ -33,10 +34,11 @@ public:
 	void ShowPointer(bool val);
 	void DeleteCurrentShape();
 
-
 private:
 	//TODO: Should asssign to a pointer not to m_currentShape(which should be a pointer)
 	bool GetShapeContainingPoint(const sf::Vector2f& point);
+
+	Minkowski m_minkowskiCalculator;
 
 	struct Node
 	{
@@ -48,9 +50,10 @@ private:
 		int index;
 	};
 
-	bool IsEar(const Node& n, const std::vector<Node>& nodes);
-	void CreateConcaveShape();
-
+	bool IsEar(const Node& n, const std::vector<Node>& nodes, const std::vector<sf::Vector2f>& vertices);
+	void CreateConcaveShape(const std::vector<sf::Vector2f>& vertices);
+	void CreateConvexShape(const std::vector<sf::Vector2f>& vertices);
+	void DeleteShape(std::pair<int, ShapeType> shapeDeets);
 
 	sf::Vector2i SnapToGrid(const sf::Vector2f& pos);
 
@@ -61,10 +64,11 @@ private:
 	float m_xSpacing;
 	float m_ySpacing;
 
-	
-	std::pair<int, ShapeType> m_currentShape = std::make_pair(-1, ShapeType::Concave);
-	std::pair<int, ShapeType> m_shapeA = std::make_pair(-1, ShapeType::Concave);
-	std::pair<int, ShapeType> m_shapeB = std::make_pair(-1, ShapeType::Concave);
+	const std::pair<int, ShapeType> NULL_SHAPE = std::make_pair(-1, ShapeType::Concave);
+	std::pair<int, ShapeType> m_currentShape = NULL_SHAPE;
+	std::pair<int, ShapeType> m_shapeA = NULL_SHAPE;
+	std::pair<int, ShapeType> m_shapeB = NULL_SHAPE;
+	std::pair<int, ShapeType> m_invertedB = NULL_SHAPE; //This is used for reference and is cleared each time a new difference is calulated
 
 	bool m_drawPointer;
 	sf::CircleShape m_pointer;
@@ -72,7 +76,7 @@ private:
 	std::vector<sf::RectangleShape> m_gridLines;
 	std::vector<sf::Vector2f> m_shapeVertexPos;
 	std::vector<sf::CircleShape> m_shapeVertices;
-
+	bool m_shapeIsConcave = false;
 	std::vector<sf::Vector2f> m_convolutionEdges;
 
 	std::vector<ConvexShape> m_convexShapes;

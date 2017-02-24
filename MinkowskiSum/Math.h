@@ -14,6 +14,7 @@ namespace sfmath
 
 	float Dot(const sf::Vector2f& v1, const sf::Vector2f& v2);
 	float Length(const sf::Vector2f& v);
+	float Length2(const sf::Vector2f& v);
 	float Cross(const sf::Vector2f& v1, const sf::Vector2f& v2);
 	bool RayLineIntersect(const Ray& ray, const sf::Vector2f a, const sf::Vector2f b);
 
@@ -24,7 +25,7 @@ namespace sfmath
 
 	bool IsReflex(const sf::Vector2f& p, const sf::Vector2f& prev, const sf::Vector2f& next, bool counterClockwise = true);
 	std::vector<sf::Vector2f> InvertShape(const std::vector<sf::Vector2f>& vertices, sf::Vector2f origin = sf::Vector2f(0.f, 0.f));
-
+	int Mod(int i, int base);
 }
 
 #endif
