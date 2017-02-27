@@ -17,7 +17,7 @@ int main()
 {
 	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "Minkowski Sum!");
 	GridManager gm;
-	gm.GenerateGrid(WINDOW_WIDTH, WINDOW_HEIGHT, 41, 41);
+	gm.GenerateGrid(WINDOW_WIDTH, WINDOW_HEIGHT, 40, 40);
 	gm.ShowPointer(true);
 	while (window.isOpen())
 	{

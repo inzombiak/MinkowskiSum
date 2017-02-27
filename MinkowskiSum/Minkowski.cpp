@@ -7,6 +7,10 @@
 std::vector<sf::Vector2f> Minkowski::MinkoswkiSum(const std::vector<sf::Vector2f>& verticesA, const std::vector<int>& aReflexIndices,
 													const std::vector<sf::Vector2f>& verticesB, const std::vector<int>& bReflexIndices)
 {
+	m_aDirections.clear();
+	m_bDirections.clear();
+	m_visited.clear();
+
 	m_aVertices = verticesA;
 	for (int i = 0; i < m_aVertices.size(); ++i)
 	{
@@ -26,13 +30,14 @@ std::vector<sf::Vector2f> Minkowski::MinkoswkiSum(const std::vector<sf::Vector2f
 
 	//Perform 1 iteration and if both shapes are convex, we have the M-sum
 	//result = ReducedConvolution(verticesA, aReflexIndices, verticesB, bReflexIndices);
-	result = ReducedConvolution2(aReflexIndices, bReflexIndices);
+	result = ReducedConvolution_CGAL(aReflexIndices, bReflexIndices);
 	if (aReflexCount == 0 || bReflexCount == 0)
 		return result;
 	else
 	{
 		
 	}
+
 	return result;
 }
 
@@ -46,109 +51,70 @@ std::vector<sf::Vector2f> Minkowski::ReducedConvolution(const std::vector<int>& 
 	unsigned int AVertexCount = m_aVertices.size();
 	unsigned int BVertexCount = m_bVertices.size();
 	//The points on both shapes closest to the origin are on the M-sum
-	int i0 = MinIndex(m_aVertices);
-	int j0 = MinIndex(m_bVertices);
-	int i = i0, j = j0;
+	//int i0 = MinIndex(m_aVertices);
+	//int j0 = MinIndex(m_bVertices);
+	int i, j;
+	int next_i, next_j, prev_i, prev_j;
 	int aIndex, bIndex;
 
 	bool includeP, includeQ;
 	//The edge st is the edge that we add to the convolution
 	//The main job of the program is to find valid values for these
 	//Since the minima points are guaranteed to be on the M-sun boundry, we start there.
-	sf::Vector2f s = m_aVertices[i] + m_bVertices[j], t;
+	sf::Vector2f s, t;
 
-	VisitedEdge st;
-
-	Edge e, e1, e2;
+	VisitedEdge currentEdge;
 	bool iIsReflex = false, jIsReflex = false;
-
-	//I sue this flag to stop program from stalling, it's probably replaceable with soem code restructuring
-	bool edgeAdded = true;
-
 	//Itereate
-	do
+	for (unsigned int i0 = 0; i0 < AVertexCount; ++i0)
 	{
-		MAX_LOOP--;
-
-		/*if (!edgeAdded)
+		i = i0;
+		j = 0;
+		s = m_aVertices[i] + m_bVertices[j];
+		MAX_LOOP = 30;
+		do
 		{
-			if (iIsReflex)
-				i = sfmath::Mod(i + 1, AVertexCount);
-			else if (jIsReflex)
-				j = sfmath::Mod(j + 1, BVertexCount);
-		}*/
-
-		//Check if either i or j are index of a reflex vertex
-		iIsReflex = (std::find(aReflexIndices.begin(), aReflexIndices.end(), i) != aReflexIndices.end());
-		jIsReflex = (std::find(bReflexIndices.begin(), bReflexIndices.end(), j) != bReflexIndices.end());
-
-		edgeAdded = false;
-		//if (!jIsReflex)
-		//{
-			//First we check a edge (A[i], A[i+1]) against a vertex B[j]
-			//Create the edges
-		e.a = m_aVertices[i];
-		e.b = m_aVertices[sfmath::Mod(i + 1, AVertexCount)];
-		e1.a = m_bVertices[sfmath::Mod(j - 1, BVertexCount)];
-		e1.b = m_bVertices[j];
-		e2.a = m_bVertices[j];
-		e2.b = m_bVertices[sfmath::Mod((j + 1), BVertexCount)];
-		//Check if the edge is valid for the covolution
-		includeP = IsBetweenCCW(e, e1, e2);
-
-		//We assign to t here so we can check if st has been visited or not
-		//If it hasn't and its valid, we add it.
-		t = e.b + e1.b;
-		st.first = s;
-		st.second = t;
-		if (!jIsReflex)
-		{
-			if (includeP && (std::find(m_visited.begin(), m_visited.end(), st)) == m_visited.end())
-			{
-				result.push_back(s);
-				result.push_back(t);
-				m_visited.push_back(st);
-				printf("A VALID: %i %i \n", i, j);
-				s = t;
-				i = sfmath::Mod(i + 1, AVertexCount);
-				edgeAdded = true;
+			MAX_LOOP--;
+			currentEdge.first = i;
+			currentEdge.second = j;
+			printf("i: %i, j: %i \n", i, j);
+			if (m_visited.count(currentEdge))
 				continue;
-			}
-		}
-		
-		//}
-		
-		//if (!iIsReflex)
-		//{
-		
-		//Now we consider (B[j], B[j+1]) with A[i].
-		//Swap the values
-		e1 = e;  //e1 = (A[i], A[i+1]) 
-		e = e2;  //e = (B[j], B[j+1])
-		e2 = e1; //e2 = (A[i], A[i+1]) 
-		e1.a = m_aVertices[sfmath::Mod(i - 1, AVertexCount)];
-		e1.b = m_aVertices[i];
 
-		//Check if valid
-		includeQ = IsBetweenCCW(e, e1, e2);
-		if (!iIsReflex)
-		{
-			if (includeQ)
+			next_i = (i + 1) % AVertexCount;
+			next_j = (j + 1) % BVertexCount;
+			prev_i = sfmath::Mod(i - 1, AVertexCount);
+			prev_j = sfmath::Mod(j - 1, BVertexCount);
+
+			iIsReflex = (std::find(aReflexIndices.begin(), aReflexIndices.end(), i) != aReflexIndices.end());
+			jIsReflex = (std::find(bReflexIndices.begin(), bReflexIndices.end(), j) != bReflexIndices.end());
+
+			includeP = IsBetweenCCW(m_aDirections[i], m_bDirections[prev_j], m_bDirections[j]);
+			includeQ = IsBetweenCCW(m_bDirections[j], m_aDirections[prev_i], m_aDirections[i]);
+			if (includeP && !jIsReflex)
 			{
-				t = e1.b + e.b;
+				//m_visited.insert(VisitedEdge(next_i, j));
+				t = m_aVertices[next_i] + m_bVertices[j];
 				result.push_back(s);
 				result.push_back(t);
-				st.second = t;
-				m_visited.push_back(st);
-				printf("B VALID: %i %i \n", i, j);
 				s = t;
-				j = sfmath::Mod((j + 1), BVertexCount);
-				edgeAdded = true;
+
+				i = next_i;
 			}
-		}
-		else
-			i++;
-	} while (MAX_LOOP && (i != i0 || j != j0)); // Repeat until we're back where we started
+			
+			if (includeQ && !iIsReflex)
+			{
+				//m_visited.insert(VisitedEdge(i, next_j));
+				t = m_aVertices[i] + m_bVertices[next_j];
+				result.push_back(s);
+				result.push_back(t);
+				s = t;
+
+				j = next_j;
+			}
+		} while (MAX_LOOP > 0 && (i != i0 || j != 0)); // Repeat until we're back where we started
+	}
+	
 	printf("Convolution Size: %i MAX_LOOP: %i \n", result.size(), MAX_LOOP);
 	return result;
 }
@@ -166,13 +132,10 @@ std::vector<sf::Vector2f> Minkowski::ExtractOrientableLoops(const std::vector<sf
 }
 
 bool Minkowski::IsBetweenCCW(sf::Vector2f eVec, sf::Vector2f e1Vec,sf::Vector2f e2Vec)
-
 {
 	//I wasted a lot of time at night trying to fix this function, 
 	//until I remembered that SFML has an inverted y-axis
-	eVec.y *= -1;
-	e1Vec.y *= -1;
-	e2Vec.y *= -1;
+
 	float crossE1E, crossE1E2, crossE2E, crossE2E1;
 	crossE1E = sfmath::Cross(e1Vec, eVec);
 	crossE2E = sfmath::Cross(e2Vec, eVec);
@@ -184,99 +147,19 @@ bool Minkowski::IsBetweenCCW(sf::Vector2f eVec, sf::Vector2f e1Vec,sf::Vector2f 
 	if ((crossE1E == 0 && sfmath::Dot(e1Vec, eVec) > 0) ||
 		(crossE2E == 0 && sfmath::Dot(e2Vec, eVec) > 0))
 		return true;
-	// First attempt, seems to work but also returns true if it is inbetween in CW direction.Needs more testing
-	//return ((crossE1E * crossE1E2) >= 0 && (crossE2E * crossE2E1) >= 0);
-	//TODO: I didnt keep a record of which of these 3 is correct, so I'm keepign all 3 just in case
-	/*if (crossE1E2 < 0)
-	{
-		if (crossE1E < 0)
-			return false;
-		else
-			return true;
-	}
-	else if (crossE1E2 > 0)
-	{
-		if (crossE1E < 0)
-			return false;
-		else if ((crossE1E * crossE1E2) >= 0 && (crossE2E * crossE2E1) >= 0)
-			return true;
-	}*/
 
-	//If e2 is cw from e1
+	//E2 is CCW from E1
 	if (crossE1E2 < 0)
 	{
-		//if e is ccw from e1, its inbetween, otherwise, check if it is inbetween
+		//if E is CW from e1, it can't be inbetween, otherwise, check if it is inbetween
 		if (crossE1E > 0)
-			return true;
-		else
-			return ((crossE1E * crossE1E2) >= 0 && (crossE2E * crossE2E1) >= 0);
-	}
-	else if (crossE1E2 > 0) // If e2 is ccw from e1
-	{
-		//If e is cw from e1, it isn't valid, otherwise, check if it is inbetween
-		if (crossE1E < 0)
 			return false;
 		else
 			return ((crossE1E * crossE1E2) >= 0 && (crossE2E * crossE2E1) >= 0);
 	}
-
-	return false;
-}
-bool Minkowski::IsBetweenCCW(const Edge& e, const Edge& e1, const Edge& e2)
-{
-	if (e.a == e1.a && e.b == e1.b)
-		return true;
-
-	sf::Vector2f eVec = e.b - e.a, e1Vec = e1.b - e1.a, e2Vec = e2.b - e2.a;
-	//I wasted a lot of time at night trying to fix this function, 
-	//until I remembered that SFML has an inverted y-axis
-	eVec.y *= -1;
-	e1Vec.y *= -1;
-	e2Vec.y *= -1;
-	float crossE1E, crossE1E2, crossE2E, crossE2E1;
-	crossE1E = sfmath::Cross(e1Vec, eVec);
-	crossE2E = sfmath::Cross(e2Vec, eVec);
-
-	crossE1E2 = sfmath::Cross(e1Vec, e2Vec);
-	crossE2E1 = sfmath::Cross(e2Vec, e1Vec);
-
-	//If E1/E2 are in the same dircetion as E, return true
-	if ((crossE1E == 0 && sfmath::Dot(e1Vec, eVec) == 1) ||
-		(crossE2E == 0 && sfmath::Dot(e2Vec, eVec) == 1))
+	else if (crossE1E2 > 0) // If E2 is CW from E1
 	{
-		return true;
-	}
-		
-	// First attempt, seems to work but also returns true if it is inbetween in CW direction.Needs more testing
-	//return ((crossE1E * crossE1E2) >= 0 && (crossE2E * crossE2E1) >= 0);
-	//TODO: I didnt keep a record of which of these 3 is correct, so I'm keepign all 3 just in case
-	/*if (crossE1E2 < 0)
-	{
-	if (crossE1E < 0)
-	return false;
-	else
-	return true;
-	}
-	else if (crossE1E2 > 0)
-	{
-	if (crossE1E < 0)
-	return false;
-	else if ((crossE1E * crossE1E2) >= 0 && (crossE2E * crossE2E1) >= 0)
-	return true;
-	}*/
-
-	//If e2 is cw from e1
-	if (crossE1E2 < 0)
-	{
-		//if e is ccw from e1, its inbetween, otherwise, check if it is inbetween
-		if (crossE1E >= 0)
-			return true;
-		else
-			return ((crossE1E * crossE1E2) >= 0 && (crossE2E * crossE2E1) >= 0);
-	}
-	else if (crossE1E2 > 0) // If e2 is ccw from e1
-	{
-		//If e is cw from e1, it isn't valid, otherwise, check if it is inbetween
+		//If E is CCW from E1, it is valid otherwise, check if it is inbetween
 		if (crossE1E < 0)
 			return false;
 		else
@@ -297,11 +180,36 @@ int Minkowski::MinIndex(const std::vector<sf::Vector2f>& vertices)
 
 	return min;
 }
+
+/*
+	CGAL CODE FOR REFERENCE: https://github.com/CGAL/cgal/blob/master/Minkowski_sum_2/include/CGAL/Minkowski_sum_2/Minkowski_sum_by_reduced_convolution_2.h\
+	I haven't used CGAL, but the code provided in the link above did not work for my polygons without one simple change. 
+	This issue may be my fault, but I'm going to explain what I found anyway.
+	I found that if either polygon was concave, then the algorithm would fail depending on what order the vertices were placed.
+	Testing on a simple 4 vertex concave polygon(arrow-shaped), I found it would fail everytime unless the reflex vertex was the first vertex.
+	I've attempted to draw a dengenerate case. If we move the first vertex to the relfex angle, the algorithm works as is.
+	                   
+					   1
+	                  * ^
+	0 < * * 3		 * B *
+	*       ^		*     * 
+	*   A   *	   *   3   * 
+	v       *     v  ^   v  *
+	1 * * > 2    2 *       * 0 
+
+	An interesting thing to note is that when the code reaches A0, B0, it does not find any valid edges, controdicting what is written in the paper.
+	The specific issue was that A1 + B3 -> A1 + B0 was never added to the final convolution.
+
+	The fix is simple: move state_queue.push(State(new_i1, new_i2)) outside of the "if".
+	My reasoning for this is that for a concave polygon a loop isn't closed, so we won't traverse all the vertices if we only move forwards(or backwards).
+	When I did it by hand I found that the algorithm would ONLY consider the B3 when traversing the edges of A and since it is a reflex vertex it would not be valid, 
+	and the state "A1 B3" would never be added to the queue. By adding it to the queue, B3 ends up being considered with A0->A1, completing the convolution.
+
+*/
 #include <queue>
-#include <set>
 typedef std::pair<int, int>                           State;
 
-std::vector<sf::Vector2f> Minkowski::ReducedConvolution2(const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices)
+std::vector<sf::Vector2f> Minkowski::ReducedConvolution_CGAL(const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices)
 {
 	std::vector<sf::Vector2f> result;
 	int n1 = static_cast<int>(m_aVertices.size());
@@ -313,24 +221,10 @@ std::vector<sf::Vector2f> Minkowski::ReducedConvolution2(const std::vector<int>&
 	int minB = MinIndex(m_bVertices);
 	// Init the queue with vertices from the first column
 	std::queue<State> state_queue;
-	int i = n1 - 1;// minA;
-	int j = minB;
-	do
+	for (int i = n1 - 1; i >= 0; --i)
 	{
 		state_queue.push(State(i, 0));
-
-		i = --i;// (i + 1) % n1;
-	} while (i >= 0); //(i != minA);
-	
-
-	/*int i = minA;
-	int j = minB;
-	do
-	{
-		state_queue.push(State(i, 0));
-
-		i = (i + 1) % n1;
-	} while (i != minA);*/
+	}
 
 	while (state_queue.size() > 0)
 	{
@@ -373,14 +267,22 @@ std::vector<sf::Vector2f> Minkowski::ReducedConvolution2(const std::vector<int>&
 			// the segment belongs to the full convolution.
 			bool belongs_to_convolution;
 			if (step_in_pgn1)
-				belongs_to_convolution = IsBetweenCCW(m_aDirections[i1], m_bDirections[sfmath::Mod((i2 - 1), n2)], m_bDirections[i2]);
+				belongs_to_convolution = IsBetweenCCW(m_aDirections[i1], m_bDirections[prev_i2], m_bDirections[i2]);
 			else
-				belongs_to_convolution = IsBetweenCCW(m_bDirections[i2], m_aDirections[sfmath::Mod((i1 - 1), n1)], m_aDirections[i1]);
-
+				belongs_to_convolution = IsBetweenCCW(m_bDirections[i2], m_aDirections[prev_i1], m_aDirections[i1]);
+			//New location
+			state_queue.push(State(new_i1, new_i2));
+			if (new_i1 == 1 && new_i2 == 3)
+			{
+				//This is the point that would be the cause of the issue for my test case
+				//It would be considered when traversing A, and since it is reflex it wouldn't be added to the list
+				//But it WOULD'NT be considered as a part of the edge 3->0, thus leading to an incomplete convolution
+			}
 			if (belongs_to_convolution)
 			{
-				state_queue.push(State(new_i1, new_i2));
 
+				//Old location
+				//state_queue.push(State(new_i1, new_i2));
 				// Only edges added to convex vertices can be on the M-sum's boundary.
 				// This filter only leaves the *reduced* convolution.
 				bool concave;
@@ -393,19 +295,16 @@ std::vector<sf::Vector2f> Minkowski::ReducedConvolution2(const std::vector<int>&
 					concave = (std::find(aReflexIndices.begin(), aReflexIndices.end(), i1) != aReflexIndices.end());
 				}
 
-				if (!concave) //7660
+				if (!concave)
 				{
-					printf("VALID POINT FOUND- A: s%i e%i, B s:%i e:%i \n", i1, i2, new_i1, new_i2);
-					sf::Vector2f s = m_aVertices[i1] + m_bVertices[i2];// get_point(i1, i2, p1_vertices, p2_vertices);
+					sf::Vector2f s = m_aVertices[i1] + m_bVertices[i2];
 					sf::Vector2f t = m_aVertices[new_i1] + m_bVertices[new_i2];
 					result.push_back(s);
 					result.push_back(t);
 				}
-				else
-					printf("POINT IS CONCAVE : %s: %i \n", (step_in_pgn1) ? "B" : "A", (step_in_pgn1) ? i2 : i1);
 			}
 		}
 	}
-
+	printf("Convolution Size: %i \n", result.size());
 	return result;
  }
