@@ -166,7 +166,8 @@ void GridManager::CreateShape()
 	m_shoelaceSum += (m_shapeVertexPos[0].x - m_shapeVertexPos[vertexCount - 1].x)*(m_shapeVertexPos[0].y + m_shapeVertexPos[vertexCount - 1].y);
 	if (m_shoelaceSum < 0)
 		std::reverse(std::begin(m_shapeVertexPos), std::end(m_shapeVertexPos));
-	if (!m_shapeIsConcave && sfmath::IsReflex(m_shapeVertexPos[0], m_shapeVertexPos[vertexCount - 1], m_shapeVertexPos[1]))
+	if (!m_shapeIsConcave && (sfmath::IsReflex(m_shapeVertexPos[0], m_shapeVertexPos[vertexCount - 1], m_shapeVertexPos[1]) ||
+							  sfmath::IsReflex(m_shapeVertexPos[vertexCount - 1], m_shapeVertexPos[vertexCount - 2], m_shapeVertexPos[0])))
 		m_shapeIsConcave = true;
 
 	if (m_shapeIsConcave)
