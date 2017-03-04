@@ -89,7 +89,7 @@ void GridManager::Draw(sf::RenderWindow& rw)
 		for (unsigned int i = 0; i < ceCount; ++i)
 		{
 			va[i].position = m_convolutionEdges[i] - ORIGIN_OFFSET;
-			va[i].color = sf::Color::Black;
+			va[i].color = sf::Color(rand() % 255, rand() % 255, rand() % 255);
 
 		}
 
@@ -344,12 +344,6 @@ void GridManager::CreateMinkoswkiSum()
 
 	m_convolutionEdges = m_minkowskiCalculator.MinkoswkiSum(shapeA->GetVerticies(), aReflex,
 															shapeB->GetVerticies(), bReflex);
-	//Reduced convolution
-	//std::vector<sf::Vector2f> convolutionEdges;
-
-	//Orientable loop extraction
-
-	//Filter boundries from loops and return
 
 	
 }

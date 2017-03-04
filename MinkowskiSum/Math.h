@@ -2,6 +2,8 @@
 #define MATH_H
 
 #include "SFML\Graphics.hpp"
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <vector>
 
 namespace sfmath
@@ -16,6 +18,8 @@ namespace sfmath
 	float Length(const sf::Vector2f& v);
 	float Length2(const sf::Vector2f& v);
 	float Cross(const sf::Vector2f& v1, const sf::Vector2f& v2);
+	float Angle(const sf::Vector2f& v1, const sf::Vector2f& v2);
+	bool LineLineIntersect(const sf::Vector2f vA, const sf::Vector2f vB, const sf::Vector2f uA, const sf::Vector2f uB, sf::Vector2f& intersectPoint);
 	bool RayLineIntersect(const Ray& ray, const sf::Vector2f a, const sf::Vector2f b);
 
 	sf::Vector3f Cross3D(const sf::Vector3f& v1, const sf::Vector3f& v2);

@@ -56,6 +56,31 @@ bool sfmath::PointInTriangle(const sf::Vector2f& p0, const sf::Vector2f& p1, con
 	return s > 0 && t > 0 && (s + t) <= A;
 }
 
+bool sfmath::LineLineIntersect(const sf::Vector2f vA, const sf::Vector2f vB, const sf::Vector2f uA, const sf::Vector2f uB, sf::Vector2f& intersectPoint)
+{
+	sf::Vector2f vDir = (vB - vA);
+	sf::Vector2f uDir = (uB - uA);
+
+	//Cross product of the directions
+	float dirCross = Cross(vDir, uDir);
+	if (dirCross == 0)
+		return false;
+
+	sf::Vector2f originDiff = uA - vA;
+	float t = (Cross(originDiff, uDir)) / dirCross;
+	float u = (Cross(originDiff, vDir)) / dirCross;
+
+	//Since t is for ray it just needs to be >= 0 and u needs to between 0 and 1
+	if (t >= 0 && t <= 1 && u >= 0 && u <= 1)
+	{
+		intersectPoint = vA + t * vDir;
+		intersectPoint.x = std::round(intersectPoint.x);
+		intersectPoint.y = std::round(intersectPoint.y);
+		return true;
+	}
+	return false;
+}
+
 bool sfmath::RayLineIntersect(const Ray& ray, const sf::Vector2f a, const sf::Vector2f b)
 {
 	//Read this http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect/565282#565282
@@ -82,7 +107,7 @@ bool sfmath::IsReflex(const sf::Vector2f& p, const sf::Vector2f& prev, const sf:
 	vec1 = prev - p;
 	vec2 = next - p;
 
-	angle = atan2(sfmath::Cross(vec1, vec2), sfmath::Dot(vec1, vec2));
+	angle = Angle(vec1, vec2);
 	printf("Angle: %lf \n", angle);
 	if (angle > 0)
 		return false;
@@ -104,4 +129,10 @@ std::vector<sf::Vector2f> sfmath::InvertShape(const std::vector<sf::Vector2f>& v
 int sfmath::Mod(int i, int base)
 {
 	return ((i % base) + base) % base;
+
+}
+
+float sfmath::Angle(const sf::Vector2f& v1, const sf::Vector2f& v2)
+{
+	return atan2(sfmath::Cross(v1, v2), sfmath::Dot(v1, v2));
 }
