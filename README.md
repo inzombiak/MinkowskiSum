@@ -3,6 +3,9 @@ Minkowski Sum/Difference calculator. Ended up also implementing ear clipping for
 The ear clipping is done in the "CreateConcaveShape" function.
 I ended up spending more time on the ear clipping for concave polygons than I did on the Minkowski.
 
+Note: A lot of the functions are not optimized. I'll try to mark them at some point, but in general be
+aware that this is not an optimal implementation, just an implementation.
+
 I'll probably add buttons later, but until then
 
 ## Controls:
