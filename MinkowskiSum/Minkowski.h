@@ -4,6 +4,7 @@
 #include <SFML\Graphics.hpp>
 #include <vector>
 #include <set>
+#include "Math.h"
 
 class Minkowski
 {
@@ -17,35 +18,44 @@ private:
 	{
 		std::vector<sf::Vector2f> edges;
 	};
-	//Returns all edges(i, i+1) of the reduced convolution
-	std::vector<sf::Vector2f> ReducedConvolution(const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices);
-	std::vector<sf::Vector2f> ReducedConvolution_CGAL(const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices);
+
+	//Constructs the convolution
+	void ReducedConvolution(const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices);
+	void ReducedConvolution_CGAL(const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices);
+	//Constructs adjacency matrix;
+	void ConstructAdjacencyMatrix();
 	//Removes duplicate edges. Again not an optimized function
-	std::vector<sf::Vector2f> RemoveDuplicateEdges(const std::vector<sf::Vector2f>& edges);
+	void RemoveDuplicateEdges();
+	//Mark dangling edges
+	void MarkDanglingEdges();
 	//Splits edges at intersection points. At this point, I want to move on to other projects, so I'm just going to brute force it
-	std::vector<sf::Vector2f> SplitIntersectingEdges(const std::vector<sf::Vector2f>& edges);
+	void SplitIntersectingEdges();
 	//Used for recursively splitting edges returns ALL segements of the original edge
-	std::vector<sf::Vector2f> SplitEdgeAtIntersections(const sf::Vector2f& a, const sf::Vector2f& b, const std::vector<sf::Vector2f>& edges);
+	std::vector<sf::Vector2f> SplitEdgeAtIntersections(const sf::Vector2f& a, const sf::Vector2f& b);
 
 	//Returns the loops of the reduced convolution
-	std::vector<Loop> ExtractOrientableLoops(const std::vector<sf::Vector2f>& edges);
+	std::vector<Loop> ExtractOrientableLoops();
 
 	//Places edge with largest CW turn from e in out variables.
-	bool BestDirection(const sf::Vector2f& start, const sf::Vector2f& end, const std::vector<sf::Vector2f>& edges, sf::Vector2f& outStart, sf::Vector2f& outEnd, int& outID);
+	bool BestDirection(const sf::Vector2f& start, const sf::Vector2f& end, sf::Vector2f& outStart, sf::Vector2f& outEnd, int& outID);
 
 	//Traces loop starting from e
-	Loop RecordLoop(int startIndex, const std::vector<sf::Vector2f>& edges);
+	Loop RecordLoop(int startIndex);
 
 	//Used during convolution construction
 	typedef std::pair<int, int> VisitedEdge;
 
 	std::set<VisitedEdge> m_visited;
-
 	std::vector<sf::Vector2f> m_aVertices;
 	std::vector<sf::Vector2f> m_bVertices;
 	std::vector<sf::Vector2f> m_aDirections;
 	std::vector<sf::Vector2f> m_bDirections;
 
+	std::vector<sf::Vector2f> m_convolution;
+	std::vector<sf::Vector2f> m_convolutionVertices;
+	std::map<sf::Vector2f, int, sfmath::Vector2fComperator> m_vertexToIndex;
+	std::vector<std::vector<int>> m_adjacencyMatrix;
+	std::set<int> m_danglingEdgeIndices;
 	//Returns true if e is between e1 and e2 in the CCW direction
 	bool IsBetweenCCW(sf::Vector2f eVec, sf::Vector2f e1Vec, sf::Vector2f e2Vec);
 

@@ -33,7 +33,7 @@ void GridManager::GenerateGrid(int windowWidth, int windowHeight, unsigned int r
 		if (i == m_rowCount / 2)
 		{
 			newLine.setFillColor(sf::Color::Blue);
-			ORIGIN_OFFSET.y = (m_ySpacing + LINE_WIDTH) * (i + 1);
+			ORIGIN_OFFSET.y = std::round((m_ySpacing + LINE_WIDTH) * (i + 1));
 			//newLine.setSize(sf::Vector2f(m_windowWidth, 2));
 		}
 		
@@ -50,7 +50,7 @@ void GridManager::GenerateGrid(int windowWidth, int windowHeight, unsigned int r
 		if (j == m_columnCount / 2)
 		{
 			newLine.setFillColor(sf::Color::Blue);
-			ORIGIN_OFFSET.x = (m_xSpacing + LINE_WIDTH) * (j + 1);
+			ORIGIN_OFFSET.x = std::round((m_xSpacing + LINE_WIDTH) * (j + 1));
 			//newLine.setSize(sf::Vector2f(m_windowHeight, 2));
 		}
 

@@ -30,6 +30,14 @@ namespace sfmath
 	bool IsReflex(const sf::Vector2f& p, const sf::Vector2f& prev, const sf::Vector2f& next, bool counterClockwise = true);
 	std::vector<sf::Vector2f> InvertShape(const std::vector<sf::Vector2f>& vertices, sf::Vector2f origin = sf::Vector2f(0.f, 0.f));
 	int Mod(int i, int base);
+	struct Vector2fComperator
+	{
+		bool operator()(sf::Vector2f const& a, sf::Vector2f const& b)
+		{
+			return (a.x < b.x) || (a.x == b.x && a.y < b.y);
+		}
+	};
+
 }
 
 #endif

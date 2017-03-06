@@ -1,6 +1,4 @@
 #include "Minkowski.h"
-#include "Math.h"
-
 #include <map>
 #include <stack>
 
@@ -11,6 +9,11 @@ std::vector<sf::Vector2f> Minkowski::MinkoswkiSum(const std::vector<sf::Vector2f
 	m_aDirections.clear();
 	m_bDirections.clear();
 	m_visited.clear();
+	m_convolution.clear();
+	m_convolutionVertices.clear();
+	m_vertexToIndex.clear();
+	m_adjacencyMatrix.clear();
+	m_danglingEdgeIndices.clear();
 
 	m_aVertices = verticesA;
 	for (unsigned int i = 0; i < m_aVertices.size(); ++i)
@@ -24,7 +27,6 @@ std::vector<sf::Vector2f> Minkowski::MinkoswkiSum(const std::vector<sf::Vector2f
 		m_bDirections.push_back(m_bVertices[(i + 1) % m_bVertices.size()] - m_bVertices[i]);
 	}
 
-	std::vector<sf::Vector2f> convolution;
 	std::vector<Loop> loops;
 
 	m_visited.clear();
@@ -32,31 +34,31 @@ std::vector<sf::Vector2f> Minkowski::MinkoswkiSum(const std::vector<sf::Vector2f
 	int bReflexCount = bReflexIndices.size();
 
 	//Perform convolution construction if both shapes are convex, we have the M-sum
-	convolution = ReducedConvolution_CGAL(aReflexIndices, bReflexIndices);
-	printf("Convolution Size: %i \n", convolution.size());
+	ReducedConvolution_CGAL(aReflexIndices, bReflexIndices);
+	printf("Convolution Size: %i \n", m_convolution.size());
 	//Otherwise, we need to extract the orientable loops
 	if (aReflexCount != 0 || bReflexCount != 0)
 	{
-		//convolution = RemoveDuplicateEdges(convolution);
-		//printf("Convolution Size: %i \n", convolution.size());
-		convolution = SplitIntersectingEdges(convolution);
-		printf("Convolution Size: %i \n", convolution.size());
-		return convolution;
-		//loops = ExtractOrientableLoops(convolution);
+		//RemoveDuplicateEdges();
+		//printf("Convolution Size after removing duplicates: %i \n", m_convolution.size());
+		SplitIntersectingEdges();
+		printf("Convolution Size after splitting: %i \n", m_convolution.size());
+		ConstructAdjacencyMatrix();
+		MarkDanglingEdges();
+		//return convolution;
+		loops = ExtractOrientableLoops();
 	}
 	else
-		return convolution;
+		return m_convolution;
 	if (loops.empty())
-		return convolution;
+		return m_convolution;
 
 	return loops[0].edges;
 }
 
 //Returns all edges(i, i+1) of the reduced convolution
-std::vector<sf::Vector2f> Minkowski::ReducedConvolution(const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices)
+void Minkowski::ReducedConvolution(const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices)
 { 
-	std::vector<sf::Vector2f> result;
-
 	unsigned int AVertexCount = m_aVertices.size();
 	unsigned int BVertexCount = m_bVertices.size();
 	//The points on both shapes closest to the origin are on the M-sum
@@ -114,8 +116,8 @@ std::vector<sf::Vector2f> Minkowski::ReducedConvolution(const std::vector<int>& 
 					t = m_aVertices[next_i] + m_bVertices[j];
 					if (!jIsReflex)
 					{
-						result.push_back(s);
-						result.push_back(t);
+						m_convolution.push_back(s);
+						m_convolution.push_back(t);
 					}
 					s = t;
 				}
@@ -125,8 +127,8 @@ std::vector<sf::Vector2f> Minkowski::ReducedConvolution(const std::vector<int>& 
 					t = m_aVertices[i] + m_bVertices[next_j];
 					if (!iIsReflex)
 					{
-						result.push_back(s);
-						result.push_back(t);
+						m_convolution.push_back(s);
+						m_convolution.push_back(t);
 					}
 					s = t;
 				}
@@ -135,38 +137,106 @@ std::vector<sf::Vector2f> Minkowski::ReducedConvolution(const std::vector<int>& 
 
 		}
 	}
-	return result;
+}
+void Minkowski::MarkDanglingEdges()
+{
+	return;
+
+	int index;
+	int vertexCount = m_convolutionVertices.size();
+	for (unsigned int i = 0; i < m_convolution.size(); i += 2)
+	{
+		index = m_vertexToIndex[m_convolution[i]];
+		//Skip the vertices that are only a part of  2 edges
+		if (m_adjacencyMatrix[index][vertexCount] < 2)
+		{
+			m_danglingEdgeIndices.insert(i);
+		}
+		else
+		{
+			index = m_vertexToIndex[m_convolution[i + 1]];
+			if (m_adjacencyMatrix[index][vertexCount] < 2)
+			{
+				m_danglingEdgeIndices.insert(i);
+			}
+		}
+	}
 }
 
-std::vector<sf::Vector2f> Minkowski::SplitIntersectingEdges(const std::vector<sf::Vector2f>& edges)
+void Minkowski::ConstructAdjacencyMatrix()
+{
+	int size = m_convolutionVertices.size();
+	m_adjacencyMatrix.resize(size);
+	int index;
+	int lastIndex;
+	int edgeIndex;
+	for (unsigned int i = 0; i < size; i ++)
+	{
+		//I use the last element to keep track of the number of edges a vertex is a part of
+		//I'm sure theres a better way of dealing with this, but I'm getting tired of Minkowski and his sums
+		m_adjacencyMatrix[i].resize(size + 1, -1);
+		m_adjacencyMatrix[i][size] = 0;
+		for (unsigned int j = 0; j < m_convolution.size(); j++)
+		{
+			if (m_convolution[j] == m_convolutionVertices[i])
+			{
+				
+				if (j % 2 == 0)
+				{
+					//i is starting vertex
+					index = m_vertexToIndex[m_convolution[j + 1]];
+					edgeIndex = j;
+				}
+				else
+				{
+					//i is ending vertex
+					index = m_vertexToIndex[m_convolution[j - 1]];
+					edgeIndex = j - 1;
+				}
+				lastIndex = index;
+				m_adjacencyMatrix[i][index] = edgeIndex;
+				m_adjacencyMatrix[i][size]++;
+			}
+		}
+
+		if (m_adjacencyMatrix[i][size] < 2)
+		{
+			m_danglingEdgeIndices.insert(m_adjacencyMatrix[i][lastIndex]);
+		}
+	}
+}
+
+void Minkowski::SplitIntersectingEdges()
 {
 	//TODO: This is a terrible way to find intersecting edges, I'm just running out of time.
 	std::vector<sf::Vector2f> result;
 	std::vector<sf::Vector2f> split;
-	for (unsigned int i = 0; i < edges.size(); i += 2)
+	for (unsigned int i = 0; i < m_convolution.size(); i += 2)
 	{
-		split = SplitEdgeAtIntersections(edges[i], edges[i + 1], edges);
+		split = SplitEdgeAtIntersections(m_convolution[i], m_convolution[i + 1]);
 		std::copy(split.begin(), split.end(), std::back_inserter(result));
 	}
 
-	return result;
+	m_convolution = result;
 }
 
-std::vector<sf::Vector2f> Minkowski::SplitEdgeAtIntersections(const sf::Vector2f& a, const sf::Vector2f& b, const std::vector<sf::Vector2f>& edges)
+std::vector<sf::Vector2f> Minkowski::SplitEdgeAtIntersections(const sf::Vector2f& a, const sf::Vector2f& b)
 {
 	sf::Vector2f intersectionPoint;
 	std::vector<sf::Vector2f> result, left, right;
 	bool intersectionFound = false;
-	for (unsigned int i = 0; i < edges.size(); i += 2)
+	for (unsigned int i = 0; i < m_convolution.size(); i += 2)
 	{
-		if (edges[i] != a && edges[i + 1] != b && sfmath::LineLineIntersect(a, b, edges[i], edges[i + 1], intersectionPoint))
+		if (m_convolution[i] != a && m_convolution[i + 1] != b && sfmath::LineLineIntersect(a, b, m_convolution[i], m_convolution[i + 1], intersectionPoint))
 		{
 			if (intersectionPoint != a && intersectionPoint != b &&
-				intersectionPoint != edges[i] && intersectionPoint != edges[i + 1])
+				intersectionPoint != m_convolution[i] && intersectionPoint != m_convolution[i + 1])
 			{
 				intersectionFound = true;
-				left = SplitEdgeAtIntersections(a, intersectionPoint, edges);
-				right = SplitEdgeAtIntersections(intersectionPoint, b, edges);
+				intersectionPoint.x = std::round(intersectionPoint.x);
+				intersectionPoint.y = std::round(intersectionPoint.y);
+				left	= SplitEdgeAtIntersections(a, intersectionPoint);
+				right	= SplitEdgeAtIntersections(intersectionPoint, b);
 				std::copy(left.begin(), left.end(), std::back_inserter(result));
 				std::copy(right.begin(), right.end(), std::back_inserter(result));
 			}
@@ -175,6 +245,19 @@ std::vector<sf::Vector2f> Minkowski::SplitEdgeAtIntersections(const sf::Vector2f
 
 	if (!intersectionFound)
 	{
+
+		if (m_vertexToIndex.find(a) == m_vertexToIndex.end())
+		{
+			m_convolutionVertices.push_back(a);
+			m_vertexToIndex[a] = m_convolutionVertices.size() - 1;
+		}
+
+		if (m_vertexToIndex.find(b) == m_vertexToIndex.end())
+		{
+			m_convolutionVertices.push_back(b);
+			m_vertexToIndex[b] = m_convolutionVertices.size() - 1;
+		}
+
 		result.push_back(a);
 		result.push_back(b);
 	}
@@ -182,36 +265,37 @@ std::vector<sf::Vector2f> Minkowski::SplitEdgeAtIntersections(const sf::Vector2f
 	return result;
 }
 
-std::vector<sf::Vector2f> Minkowski::RemoveDuplicateEdges(const std::vector<sf::Vector2f>& edges)
+void Minkowski::RemoveDuplicateEdges()
 {
 	std::vector<sf::Vector2f> result;
-	result.push_back(edges[0]);
-	result.push_back(edges[1]);
-	for (unsigned int i = 2; i < edges.size(); i += 2)
+	result.push_back(m_convolution[0]);
+	result.push_back(m_convolution[1]);
+	for (unsigned int i = 2; i < m_convolution.size(); i += 2)
 	{
-		auto it = std::find(result.begin(), result.end(), edges[i]);
-		if (it != result.end() && it != result.end() - 1 && *(it + 1) == edges[i + 1])
+		auto it = std::find(result.begin(), result.end(), m_convolution[i]);
+		if (it != result.end() && it != result.end() - 1 && *(it + 1) == m_convolution[i + 1])
 		{
 			continue;
 		}
 
-		result.push_back(edges[i]);
-		result.push_back(edges[i + 1]);
+		result.push_back(m_convolution[i]);
+		result.push_back(m_convolution[i + 1]);
 
 	}
-	return result;
+
+	m_convolution = result;
 }
 
-std::vector<Minkowski::Loop> Minkowski::ExtractOrientableLoops(const std::vector<sf::Vector2f>& edges)
+std::vector<Minkowski::Loop> Minkowski::ExtractOrientableLoops()
 {
 	//std::
 	std::vector<int> edgeIDs;
-	edgeIDs.resize(edges.size() / 2, -1);
+	edgeIDs.resize(m_convolution.size() / 2, -1);
 
 	std::stack<sf::Vector2f, std::vector<sf::Vector2f>> segStack;
-	for (unsigned int i = edges.size(); i-- > 0; )
+	for (unsigned int i = m_convolution.size(); i-- > 0;)
 	{
-		segStack.push(edges[i]);
+		segStack.push(m_convolution[i]);
 	}
 	std::vector<Loop> result;
 
@@ -231,7 +315,7 @@ std::vector<Minkowski::Loop> Minkowski::ExtractOrientableLoops(const std::vector
 		segEnd = segStack.top();
 		segStack.pop();
 		
-		if (edgeIDs[currEdge] != -1)
+		if (edgeIDs[currEdge] != -1 || m_danglingEdgeIndices.count(currEdge * 2) > 0)
 		{
 			currEdge++;
 			continue;
@@ -240,17 +324,18 @@ std::vector<Minkowski::Loop> Minkowski::ExtractOrientableLoops(const std::vector
 
 		edgeIDs[currEdge] = currentID;
 		
-		hasNext = BestDirection(segStart, segEnd, edges, bestStart, bestEnd, bestIndex);
+		hasNext = BestDirection(segStart, segEnd, bestStart, bestEnd, bestIndex);
 		
 		while (hasNext && edgeIDs[bestIndex / 2] == -1)
 		{
+			printf("Next best: %i \n", bestIndex);
 			edgeIDs[bestIndex / 2] = currentID;
-			hasNext = BestDirection(bestStart, bestEnd, edges, bestStart, bestEnd, bestIndex);
+			hasNext = BestDirection(bestStart, bestEnd, bestStart, bestEnd, bestIndex);
 		}
 
 		if (hasNext && edgeIDs[bestIndex / 2] == currentID)
 		{
-			Loop loop = RecordLoop(currEdge * 2, edges);
+			Loop loop = RecordLoop(currEdge * 2);
 			if (loop.edges.size() > 4)
 			{
 				result.push_back(loop);
@@ -264,7 +349,7 @@ std::vector<Minkowski::Loop> Minkowski::ExtractOrientableLoops(const std::vector
 	return result;
 }
 
-bool Minkowski::BestDirection(const sf::Vector2f& start, const sf::Vector2f& end, const std::vector<sf::Vector2f>& edges, 
+bool Minkowski::BestDirection(const sf::Vector2f& start, const sf::Vector2f& end, 
 							  sf::Vector2f& outStart, sf::Vector2f& outEnd, int& outIndex)
 {
 	//TODO: Need to change how the dges are stored for faster search
@@ -274,16 +359,16 @@ bool Minkowski::BestDirection(const sf::Vector2f& start, const sf::Vector2f& end
 	float nextAngle = 0;
 	sf::Vector2f edgeDir = end - start;
 	sf::Vector2f currDir;
-	for (unsigned int i = 0; i < edges.size(); i += 2)
+	for (unsigned int i = 0; i < m_convolution.size(); i += 2)
 	{
-		if (edges[i] != end)
+		if (m_convolution[i] != end)
 			continue;
 
-		currDir = edges[i + 1] - edges[i];
-		nextAngle = sfmath::Angle(-edgeDir, -currDir) + M_PI;
+		currDir = m_convolution[i + 1] - m_convolution[i];
+		nextAngle = sfmath::Angle(edgeDir, currDir) + M_PI;
 		if (std::abs(nextAngle) < FLT_EPSILON)
 			nextAngle = 0;
-		if (nextAngle > currBestAngle && nextAngle != 0 && std::abs(nextAngle - M_PI) > 0.001)
+		if (nextAngle > currBestAngle && m_danglingEdgeIndices.count(i) < 1)
 		{
 			currBestIndex = i;
 			currBestAngle = nextAngle;
@@ -301,29 +386,29 @@ bool Minkowski::BestDirection(const sf::Vector2f& start, const sf::Vector2f& end
 		return false;
 	}
 
-	outStart = edges[currBestIndex];
-	outEnd = edges[currBestIndex + 1];
+	outStart = m_convolution[currBestIndex];
+	outEnd = m_convolution[currBestIndex + 1];
 	outIndex = currBestIndex;
 
 	return true;
 }
 
-Minkowski::Loop Minkowski::RecordLoop(int startIndex, const std::vector<sf::Vector2f>& edges)
+Minkowski::Loop Minkowski::RecordLoop(int startIndex)
 {
 	int MAX_LOOP = 100;
 	Loop result;
 	int nextIndex;
 	bool hasNext;
-	sf::Vector2f nextStart = edges[startIndex];
-	sf::Vector2f nextEnd = edges[startIndex + 1];
+	sf::Vector2f nextStart = m_convolution[startIndex];
+	sf::Vector2f nextEnd = m_convolution[startIndex + 1];
 	result.edges.push_back(nextStart);
 	result.edges.push_back(nextEnd);
-	hasNext = BestDirection(nextStart, nextEnd, edges, nextStart, nextEnd, nextIndex);
+	hasNext = BestDirection(nextStart, nextEnd, nextStart, nextEnd, nextIndex);
 	while (nextIndex != startIndex && hasNext && MAX_LOOP >= 0)
 	{
 		result.edges.push_back(nextStart);
 		result.edges.push_back(nextEnd);
-		hasNext = BestDirection(nextStart, nextEnd, edges, nextStart, nextEnd, nextIndex);
+		hasNext = BestDirection(nextStart, nextEnd, nextStart, nextEnd, nextIndex);
 		MAX_LOOP--;
 	}
 
@@ -384,9 +469,8 @@ int Minkowski::MinIndex(const std::vector<sf::Vector2f>& vertices)
 #include <queue>
 typedef std::pair<int, int>                           State;
 
-std::vector<sf::Vector2f> Minkowski::ReducedConvolution_CGAL(const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices)
+void Minkowski::ReducedConvolution_CGAL(const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices)
 {
-	std::vector<sf::Vector2f> result;
 	int n1 = static_cast<int>(m_aVertices.size());
 	int n2 = static_cast<int>(m_bVertices.size());
 
@@ -470,11 +554,12 @@ std::vector<sf::Vector2f> Minkowski::ReducedConvolution_CGAL(const std::vector<i
 						continue;
 					}
 
-					result.push_back(s);
-					result.push_back(t);
+								 
+					m_convolution.push_back(s);
+					m_convolution.push_back(t);
 				}
 			}
 		}
 	}
-	return result;
+	m_convolutionVertices.shrink_to_fit();
  }
