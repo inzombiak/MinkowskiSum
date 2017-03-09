@@ -24,6 +24,8 @@ private:
 	void ReducedConvolution_CGAL(const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices);
 	//Constructs adjacency matrix;
 	void ConstructAdjacencyMatrix();
+	//Cleans up the adjacency matrix and vertices, merging points that are close to each other
+	void MergePoints();
 	//Removes duplicate edges. Again not an optimized function
 	void RemoveDuplicateEdges();
 	//Mark dangling edges
@@ -31,7 +33,7 @@ private:
 	//Splits edges at intersection points. At this point, I want to move on to other projects, so I'm just going to brute force it
 	void SplitIntersectingEdges();
 	//Used for recursively splitting edges returns ALL segements of the original edge
-	std::vector<sf::Vector2f> SplitEdgeAtIntersections(const sf::Vector2f& a, const sf::Vector2f& b);
+	std::vector<sf::Vector2f> SplitEdgeAtIntersections(sf::Vector2f& a, sf::Vector2f& b, std::vector<sf::Vector2f>& encounteredVertices);
 
 	//Returns the loops of the reduced convolution
 	std::vector<Loop> ExtractOrientableLoops();
@@ -63,6 +65,8 @@ private:
 	int MinIndex(const std::vector<sf::Vector2f>& vertices);
 
 };
+
+//662, 810
 	
 
 #endif

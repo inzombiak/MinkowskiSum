@@ -39,21 +39,79 @@ std::vector<sf::Vector2f> Minkowski::MinkoswkiSum(const std::vector<sf::Vector2f
 	//Otherwise, we need to extract the orientable loops
 	if (aReflexCount != 0 || bReflexCount != 0)
 	{
-		//RemoveDuplicateEdges();
-		//printf("Convolution Size after removing duplicates: %i \n", m_convolution.size());
 		SplitIntersectingEdges();
 		printf("Convolution Size after splitting: %i \n", m_convolution.size());
 		ConstructAdjacencyMatrix();
-		MarkDanglingEdges();
+		//This is dumb, but I want to get this to at least work bug free, then optimize
+		//MergePoints();
+		//ConstructAdjacencyMatrix();
+		printf("Convolution Size after removing duplicates: %i \n", m_convolution.size());
+		//RemoveDuplicateEdges();
+		//MarkDanglingEdges();
 		//return convolution;
 		loops = ExtractOrientableLoops();
 	}
 	else
 		return m_convolution;
 	if (loops.empty())
-		return m_convolution;
+	{
+		std::vector<sf::Vector2f> result;
+
+		for (unsigned int i = 0; i < m_convolution.size(); i += 2)
+		{
+			if (m_danglingEdgeIndices.count(i) > 0)
+				continue;
+
+			result.push_back(m_convolution[i]);
+			result.push_back(m_convolution[i + 1]);
+		}
+		return result;
+	}
+		
 
 	return loops[0].edges;
+}
+
+//Cleans up the adjacency matrix and vertices, merging points that are close to each other
+//I got tired of trying a bunch of simpler methods, so I'm doing this
+void Minkowski::MergePoints()
+{
+	std::vector<sf::Vector2f> cleanedVertices;
+	//Maybe use a set?
+	std::map<int, int> mergedPoints;
+	sf::Vector2f currPoint, twinPoint;
+	int currIndex, twinIndex;
+	const float THRESHOLD_DISTANCE = 4.f;
+	bool pointFound = false;
+	for (unsigned int i = 0; i < m_convolutionVertices.size(); ++i)
+	{
+		pointFound = false;
+		currPoint = m_convolutionVertices[i];
+		currIndex = m_vertexToIndex[currPoint];
+		if (mergedPoints.find(i) != mergedPoints.end())
+			continue;
+
+		for (unsigned int j = i + 1; j < m_convolutionVertices.size(); ++j)
+		{
+			if (sfmath::Length2(m_convolutionVertices[j] - m_convolutionVertices[i]) > THRESHOLD_DISTANCE)
+				continue;
+
+			twinPoint = m_convolutionVertices[j];
+			twinIndex = m_vertexToIndex[twinPoint];
+			
+			for (unsigned int k = 0; k < m_adjacencyMatrix[twinIndex].size(); ++k)
+			{
+				if (m_adjacencyMatrix[twinIndex][k] == -1)
+					continue;
+
+				
+
+			}
+			mergedPoints[j] = i;
+		}
+
+		cleanedVertices.push_back(currPoint);
+	}
 }
 
 //Returns all edges(i, i+1) of the reduced convolution
@@ -165,6 +223,7 @@ void Minkowski::MarkDanglingEdges()
 
 void Minkowski::ConstructAdjacencyMatrix()
 {
+	m_adjacencyMatrix.clear();
 	int size = m_convolutionVertices.size();
 	m_adjacencyMatrix.resize(size);
 	int index;
@@ -178,7 +237,7 @@ void Minkowski::ConstructAdjacencyMatrix()
 		m_adjacencyMatrix[i][size] = 0;
 		for (unsigned int j = 0; j < m_convolution.size(); j++)
 		{
-			if (m_convolution[j] == m_convolutionVertices[i])
+			if (sfmath::Length2(m_convolution[j] - m_convolutionVertices[i]) < 5.f)
 			{
 				
 				if (j % 2 == 0)
@@ -211,39 +270,93 @@ void Minkowski::SplitIntersectingEdges()
 	//TODO: This is a terrible way to find intersecting edges, I'm just running out of time.
 	std::vector<sf::Vector2f> result;
 	std::vector<sf::Vector2f> split;
+	std::vector<sf::Vector2f> encounteredVertices;
 	for (unsigned int i = 0; i < m_convolution.size(); i += 2)
 	{
-		split = SplitEdgeAtIntersections(m_convolution[i], m_convolution[i + 1]);
+		split = SplitEdgeAtIntersections(m_convolution[i], m_convolution[i + 1], encounteredVertices);
 		std::copy(split.begin(), split.end(), std::back_inserter(result));
 	}
 
 	m_convolution = result;
 }
 
-std::vector<sf::Vector2f> Minkowski::SplitEdgeAtIntersections(const sf::Vector2f& a, const sf::Vector2f& b)
+//TODO: BAD
+bool CheckForSimilarPoint(const sf::Vector2f& point, const  std::vector<sf::Vector2f>& encounteredVertices, sf::Vector2f& similairPoint)
+{
+	int i = 1;
+	for (unsigned int i = 0; i < encounteredVertices.size(); ++i)
+	{
+		if (sfmath::Length2(encounteredVertices[i] - point) < 8.f)
+		{
+			similairPoint = encounteredVertices[i];
+			return true;
+		}
+		//checkPoint = point;
+		//checkPoint.x += std::sin((i + 1) * -M_PI_2);
+		//for (unsigned int j = 0; j < 3; ++j)
+		//{
+		//	checkPoint.y += std::sin((j + 1) * -M_PI_2);
+		//	if (i == 1 && j == 1)
+		//		continue;
+		//	if (encounteredVertices.count(checkPoint) > 0)
+		//	{
+		//		similairPoint = checkPoint;
+		//		return true;
+		//	}
+		//}
+	}
+
+	return false;
+}
+
+std::vector<sf::Vector2f> Minkowski::SplitEdgeAtIntersections(sf::Vector2f& a, sf::Vector2f& b, std::vector<sf::Vector2f>& encounteredVertices)
 {
 	sf::Vector2f intersectionPoint;
 	std::vector<sf::Vector2f> result, left, right;
+	if (a == b)
+		return result;
+
+	if (!CheckForSimilarPoint(a, encounteredVertices, a))
+	{
+		encounteredVertices.push_back(a);
+	}
+	if (!CheckForSimilarPoint(b, encounteredVertices, b))
+	{
+		encounteredVertices.push_back(b);
+	}
+
 	bool intersectionFound = false;
 	for (unsigned int i = 0; i < m_convolution.size(); i += 2)
 	{
-		if (m_convolution[i] != a && m_convolution[i + 1] != b && sfmath::LineLineIntersect(a, b, m_convolution[i], m_convolution[i + 1], intersectionPoint))
+		if ((m_convolution[i] != a && m_convolution[i + 1] != b) &&
+			(m_convolution[i] != b && m_convolution[i + 1] != a) &&
+			sfmath::LineLineIntersect(a, b, m_convolution[i], m_convolution[i + 1], intersectionPoint))
 		{
-			if (intersectionPoint != a && intersectionPoint != b &&
+			intersectionPoint.x = std::round(intersectionPoint.x + 0.5f);
+			intersectionPoint.y = std::round(intersectionPoint.y + 0.5f);
+
+			if (!CheckForSimilarPoint(intersectionPoint, encounteredVertices, intersectionPoint))
+			{
+				encounteredVertices.push_back(intersectionPoint);
+			}
+
+			if (sfmath::Length(intersectionPoint - a) > 2 && sfmath::Length(intersectionPoint - b) > 2 &&
 				intersectionPoint != m_convolution[i] && intersectionPoint != m_convolution[i + 1])
 			{
 				intersectionFound = true;
-				intersectionPoint.x = std::round(intersectionPoint.x);
-				intersectionPoint.y = std::round(intersectionPoint.y);
-				left	= SplitEdgeAtIntersections(a, intersectionPoint);
-				right	= SplitEdgeAtIntersections(intersectionPoint, b);
+				if (a != intersectionPoint)
+					left = SplitEdgeAtIntersections(a, intersectionPoint, encounteredVertices);
+
+				if (b != intersectionPoint)
+					right = SplitEdgeAtIntersections(intersectionPoint, b, encounteredVertices);
+
 				std::copy(left.begin(), left.end(), std::back_inserter(result));
 				std::copy(right.begin(), right.end(), std::back_inserter(result));
 			}
 		}
 	}
 
-	if (!intersectionFound)
+	if (!intersectionFound && a != b)
 	{
 
 		if (m_vertexToIndex.find(a) == m_vertexToIndex.end())

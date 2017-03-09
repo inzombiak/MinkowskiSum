@@ -15,7 +15,11 @@ float sfmath::Length(const sf::Vector2f& v)
 
 float sfmath::Cross(const sf::Vector2f& v1, const sf::Vector2f& v2)
 {
-	return (v1.x * v2.y) - (v1.y * v2.x);
+	float result = (v1.x * v2.y) - (v1.y * v2.x);
+
+	result = roundf(result * 100) / 100;
+
+	return result;
 }
 
 sf::Vector3f sfmath::Cross3D(const sf::Vector3f& v1, const sf::Vector3f& v2)
@@ -63,21 +67,41 @@ bool sfmath::LineLineIntersect(const sf::Vector2f vA, const sf::Vector2f vB, con
 
 	//Cross product of the directions
 	float dirCross = Cross(vDir, uDir);
-	if (dirCross == 0)
-		return false;
-
 	sf::Vector2f originDiff = uA - vA;
-	float t = (Cross(originDiff, uDir)) / dirCross;
-	float u = (Cross(originDiff, vDir)) / dirCross;
 
-	//Since t is for ray it just needs to be >= 0 and u needs to between 0 and 1
-	if (t >= 0 && t <= 1 && u >= 0 && u <= 1)
+	if (dirCross == 0 && Cross(originDiff, vDir) == 0)
 	{
-		intersectPoint = vA + t * vDir;
-		intersectPoint.x = std::round(intersectPoint.x);
-		intersectPoint.y = std::round(intersectPoint.y);
-		return true;
+		float vDot = Dot(vDir, vDir);
+		float t0 = Dot(originDiff, vDir) / vDot;
+		float t1 = t0 + (Dot(uDir, vDir) / vDot);
+					
+		if (t0 >= 0 && t0 <= 1)
+		{
+			t0 = roundf(t0 * 100) / 100;
+			intersectPoint = vA + t0 * vDir;
+			return true;
+		}
+		else if (t1 >= 0 && t1 <= 1)
+		{
+			t1 = roundf(t1 * 100) / 100;
+			intersectPoint = vA + t1 * vDir;
+			return true;
+		}
+			return false;
+
 	}
+	else
+	{
+		float t = (Cross(originDiff, uDir)) / dirCross;
+		float u = (Cross(originDiff, vDir)) / dirCross;
+		if (t >= 0 && t <= 1 && u >= 0 && u <= 1)
+		{
+			t = roundf(t * 100) / 100;
+			intersectPoint = vA + (float)t * vDir;
+			return true;
+		}
+	}
+	
 	return false;
 }
 
