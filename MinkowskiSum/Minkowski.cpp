@@ -1,6 +1,7 @@
 #include "Minkowski.h"
 #include <map>
 #include <stack>
+#include <queue>
 
 //Returns vertices of the sum
 std::vector<sf::Vector2f> Minkowski::MinkoswkiSum(const std::vector<sf::Vector2f>& verticesA, const std::vector<int>& aReflexIndices,
@@ -35,20 +36,23 @@ std::vector<sf::Vector2f> Minkowski::MinkoswkiSum(const std::vector<sf::Vector2f
 
 	//Perform convolution construction if both shapes are convex, we have the M-sum
 	ReducedConvolution_CGAL(aReflexIndices, bReflexIndices);
+	//ReducedConvolution(aReflexIndices, bReflexIndices);
 	printf("Convolution Size: %i \n", m_convolution.size());
 	//Otherwise, we need to extract the orientable loops
 	if (aReflexCount != 0 || bReflexCount != 0)
 	{
 		SplitIntersectingEdges();
 		printf("Convolution Size after splitting: %i \n", m_convolution.size());
+		//During this step, I also mark the easy to identify dangling edges
+		//These are edges that are not part of the loop
 		ConstructAdjacencyMatrix();
-		//This is dumb, but I want to get this to at least work bug free, then optimize
-		//MergePoints();
-		//ConstructAdjacencyMatrix();
+		//Now I go over the dangling edges, trying to find more
+		//Basically, If a vertex has only one connection, then its dangling.
+		//If its neightbor vertex has only 2 connections, then since one of its neighbors is dangling, it is too
+		//Repeat this "cutting" process until we hit a point with 3 connections, where at least 1 is not dangling
+		//The paper talks about collision and intersection tests, but I couldn't really understand what were checking
+		//MarkRemainingDanglingEdges();
 		printf("Convolution Size after removing duplicates: %i \n", m_convolution.size());
-		//RemoveDuplicateEdges();
-		//MarkDanglingEdges();
-		//return convolution;
 		loops = ExtractOrientableLoops();
 	}
 	else
@@ -196,29 +200,38 @@ void Minkowski::ReducedConvolution(const std::vector<int>& aReflexIndices, const
 		}
 	}
 }
-void Minkowski::MarkDanglingEdges()
+void Minkowski::MarkRemainingDanglingEdges()
 {
 	return;
+	std::queue<int, std::deque<int>> danglers(std::deque<int>(m_danglingEdgeIndices.begin(), m_danglingEdgeIndices.end()));
+	m_danglingEdgeIndices.clear();
+	int index, sIndex, eIndex;
+	int connectionsIndex = m_adjacencyMatrix[0].size() - 1;
+	sf::Vector2f start, end;
 
-	int index;
-	int vertexCount = m_convolutionVertices.size();
-	for (unsigned int i = 0; i < m_convolution.size(); i += 2)
+	while (!danglers.empty())
 	{
-		index = m_vertexToIndex[m_convolution[i]];
-		//Skip the vertices that are only a part of  2 edges
-		if (m_adjacencyMatrix[index][vertexCount] < 2)
+		index = danglers.front();
+		danglers.pop();
+
+		m_danglingEdgeIndices.insert(index);
+		start = m_convolution[index];
+		end = m_convolution[index + 1];
+		sIndex = m_vertexToIndex[start];
+		eIndex = m_vertexToIndex[end];
+
+		//I could speed this up by storing directions, but this will do for now
+		//Basically find which vertex has another edge
+		/*if (m_adjacencyMatrix[sIndex][connectionsIndex] > 1)
 		{
-			m_danglingEdgeIndices.insert(i);
+
 		}
-		else
+		else if (m_adjacencyMatrix[eIndex][connectionsIndex] > 1)
 		{
-			index = m_vertexToIndex[m_convolution[i + 1]];
-			if (m_adjacencyMatrix[index][vertexCount] < 2)
-			{
-				m_danglingEdgeIndices.insert(i);
-			}
-		}
+
+		}*/
 	}
+
 }
 
 void Minkowski::ConstructAdjacencyMatrix()
@@ -235,8 +248,10 @@ void Minkowski::ConstructAdjacencyMatrix()
 		//I'm sure theres a better way of dealing with this, but I'm getting tired of Minkowski and his sums
 		m_adjacencyMatrix[i].resize(size + 1, -1);
 		m_adjacencyMatrix[i][size] = 0;
+
 		for (unsigned int j = 0; j < m_convolution.size(); j++)
 		{
+			
 			if (sfmath::Length2(m_convolution[j] - m_convolutionVertices[i]) < 5.f)
 			{
 				
@@ -258,9 +273,13 @@ void Minkowski::ConstructAdjacencyMatrix()
 			}
 		}
 
+		//Can't be in a loop if it has a single connection
 		if (m_adjacencyMatrix[i][size] < 2)
 		{
 			m_danglingEdgeIndices.insert(m_adjacencyMatrix[i][lastIndex]);
+
+			//TODO: This might be a horrible idea
+			m_adjacencyMatrix[i][size] = 0;
 		}
 	}
 }
@@ -437,13 +456,13 @@ std::vector<Minkowski::Loop> Minkowski::ExtractOrientableLoops()
 
 		edgeIDs[currEdge] = currentID;
 		
-		hasNext = BestDirection(segStart, segEnd, bestStart, bestEnd, bestIndex);
+		hasNext = BestDirection(segStart, segEnd, edgeIDs, currentID, bestStart, bestEnd, bestIndex);
 		
 		while (hasNext && edgeIDs[bestIndex / 2] == -1)
 		{
 			printf("Next best: %i \n", bestIndex);
 			edgeIDs[bestIndex / 2] = currentID;
-			hasNext = BestDirection(bestStart, bestEnd, bestStart, bestEnd, bestIndex);
+			hasNext = BestDirection(bestStart, bestEnd, edgeIDs, currentID, bestStart, bestEnd, bestIndex);
 		}
 
 		if (hasNext && edgeIDs[bestIndex / 2] == currentID)
@@ -462,7 +481,7 @@ std::vector<Minkowski::Loop> Minkowski::ExtractOrientableLoops()
 	return result;
 }
 
-bool Minkowski::BestDirection(const sf::Vector2f& start, const sf::Vector2f& end, 
+bool Minkowski::BestDirection(const sf::Vector2f& start, const sf::Vector2f& end, const std::vector<int> edgeIDs, const int targetID,
 							  sf::Vector2f& outStart, sf::Vector2f& outEnd, int& outIndex)
 {
 	//TODO: Need to change how the dges are stored for faster search
@@ -483,8 +502,11 @@ bool Minkowski::BestDirection(const sf::Vector2f& start, const sf::Vector2f& end
 			nextAngle = 0;
 		if (nextAngle > currBestAngle && m_danglingEdgeIndices.count(i) < 1)
 		{
-			currBestIndex = i;
-			currBestAngle = nextAngle;
+			if (edgeIDs.empty() || edgeIDs[i / 2] == -1 || edgeIDs[i / 2] == targetID)
+			{
+				currBestIndex = i;
+				currBestAngle = nextAngle;
+			}
 		}
 
 		if (nextAngle < 0)
@@ -516,12 +538,13 @@ Minkowski::Loop Minkowski::RecordLoop(int startIndex)
 	sf::Vector2f nextEnd = m_convolution[startIndex + 1];
 	result.edges.push_back(nextStart);
 	result.edges.push_back(nextEnd);
-	hasNext = BestDirection(nextStart, nextEnd, nextStart, nextEnd, nextIndex);
+	hasNext = BestDirection(nextStart, nextEnd, std::vector<int>(), 0, nextStart, nextEnd, nextIndex);
 	while (nextIndex != startIndex && hasNext && MAX_LOOP >= 0)
 	{
 		result.edges.push_back(nextStart);
 		result.edges.push_back(nextEnd);
-		hasNext = BestDirection(nextStart, nextEnd, nextStart, nextEnd, nextIndex);
+		hasNext = BestDirection(nextStart, nextEnd, std::vector<int>(), 0, nextStart, nextEnd, nextIndex);
+
 		MAX_LOOP--;
 	}
 

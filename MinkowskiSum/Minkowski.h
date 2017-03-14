@@ -29,7 +29,7 @@ private:
 	//Removes duplicate edges. Again not an optimized function
 	void RemoveDuplicateEdges();
 	//Mark dangling edges
-	void MarkDanglingEdges();
+	void MarkRemainingDanglingEdges();
 	//Splits edges at intersection points. At this point, I want to move on to other projects, so I'm just going to brute force it
 	void SplitIntersectingEdges();
 	//Used for recursively splitting edges returns ALL segements of the original edge
@@ -39,7 +39,7 @@ private:
 	std::vector<Loop> ExtractOrientableLoops();
 
 	//Places edge with largest CW turn from e in out variables.
-	bool BestDirection(const sf::Vector2f& start, const sf::Vector2f& end, sf::Vector2f& outStart, sf::Vector2f& outEnd, int& outID);
+	bool BestDirection(const sf::Vector2f& start, const sf::Vector2f& end, const std::vector<int> edgeIDs, const int targetID, sf::Vector2f& outStart, sf::Vector2f& outEnd, int& outID);
 
 	//Traces loop starting from e
 	Loop RecordLoop(int startIndex);
