@@ -3,6 +3,13 @@ Minkowski Sum/Difference calculator. Ended up also implementing ear clipping for
 The ear clipping is done in the "CreateConcaveShape" function.
 I ended up spending more time on the ear clipping for concave polygons than I did on the Minkowski.
 
+Note: A lot of the functions are not optimized. I'll try to mark them at some point, but in general be
+aware that this is not an optimal implementation, just an implementation.
+
+Note 2: I had a lot of difficulty understanding the paper by Baram, mostly what the collision/intersection tests are for (probably
+because M-sum is for collision detection itself so seems odd to use another collision detection method to build somethign thats used for collision detection).
+I've managed to get this program to work for a lot of cases, but there are still bugs. I'll come back to it later and try to fix them.
+
 I'll probably add buttons later, but until then
 
 ## Controls:

@@ -24,7 +24,7 @@ void GridManager::GenerateGrid(int windowWidth, int windowHeight, unsigned int r
 	m_xSpacing = (float)(m_windowWidth - LINE_WIDTH * columns) / ((float)m_columnCount + 1);
 	m_ySpacing = (float)(m_windowHeight - LINE_WIDTH * rows) / (float)(m_rowCount + 1);
 
-	for (unsigned int i = 0; i < m_rowCount; ++i)
+	for (int i = 0; i < m_rowCount; ++i)
 	{
 		sf::RectangleShape newLine(sf::Vector2f(m_windowWidth , LINE_WIDTH));
 		newLine.setPosition(0, (m_ySpacing + LINE_WIDTH) * (i + 1));
@@ -33,7 +33,7 @@ void GridManager::GenerateGrid(int windowWidth, int windowHeight, unsigned int r
 		if (i == m_rowCount / 2)
 		{
 			newLine.setFillColor(sf::Color::Blue);
-			ORIGIN_OFFSET.y = (m_ySpacing + LINE_WIDTH) * (i + 1);
+			ORIGIN_OFFSET.y = std::round((m_ySpacing + LINE_WIDTH) * (i + 1));
 			//newLine.setSize(sf::Vector2f(m_windowWidth, 2));
 		}
 		
@@ -41,7 +41,7 @@ void GridManager::GenerateGrid(int windowWidth, int windowHeight, unsigned int r
 	}
 	
 
-	for (unsigned int j = 0; j < m_columnCount; ++j)
+	for (int j = 0; j < m_columnCount; ++j)
 	{
 		sf::RectangleShape newLine(sf::Vector2f(m_windowHeight, LINE_WIDTH));
 		newLine.setPosition((m_xSpacing + LINE_WIDTH) * (j + 1), 0);
@@ -50,7 +50,7 @@ void GridManager::GenerateGrid(int windowWidth, int windowHeight, unsigned int r
 		if (j == m_columnCount / 2)
 		{
 			newLine.setFillColor(sf::Color::Blue);
-			ORIGIN_OFFSET.x = (m_xSpacing + LINE_WIDTH) * (j + 1);
+			ORIGIN_OFFSET.x = std::round((m_xSpacing + LINE_WIDTH) * (j + 1));
 			//newLine.setSize(sf::Vector2f(m_windowHeight, 2));
 		}
 
@@ -86,7 +86,7 @@ void GridManager::Draw(sf::RenderWindow& rw)
 	if (ceCount != 0)
 	{
 		sf::VertexArray va(sf::Lines, ceCount);
-		for (unsigned int i = 0; i < ceCount; ++i)
+		for (int i = 0; i < ceCount; ++i)
 		{
 			va[i].position = m_convolutionEdges[i] - ORIGIN_OFFSET;
 			va[i].color = sf::Color(rand() % 255, rand() % 255, rand() % 255);
@@ -151,9 +151,9 @@ void GridManager::DropShape()
 }
 
 sf::Vector2i GridManager::SnapToGrid(const sf::Vector2f& pos)
-{
-	int x = std::round(pos.x / (m_xSpacing + LINE_WIDTH)) * (m_xSpacing + LINE_WIDTH);
-	int y = std::round(pos.y / (m_ySpacing + LINE_WIDTH)) * (m_ySpacing + LINE_WIDTH);
+{																									  
+	int x = static_cast<int>(std::round(pos.x / (m_xSpacing + LINE_WIDTH)) * (m_xSpacing + LINE_WIDTH));
+	int y = static_cast<int>(std::round(pos.y / (m_ySpacing + LINE_WIDTH)) * (m_ySpacing + LINE_WIDTH));
 
 	return sf::Vector2i(x - CIRCLE_RADIUS, y - CIRCLE_RADIUS /2);
 }
@@ -427,7 +427,7 @@ void GridManager::CreateConcaveShape(const std::vector<sf::Vector2f>& vertices)
 	std::unordered_map<int, int> ears;
 
 
-	for (unsigned int i = 0; i < pointCount; ++i)
+	for (int i = 0; i < pointCount; ++i)
 	{
 		nodes[i].value = vertices[i];
 		nodes[i].index = i;
@@ -442,7 +442,7 @@ void GridManager::CreateConcaveShape(const std::vector<sf::Vector2f>& vertices)
 	temp.insert(temp.end(), convexVertices.begin(), convexVertices.end());
 	*/
 	{
-		for (unsigned int i = 0; i < pointCount; ++i)
+		for (int i = 0; i < pointCount; ++i)
 		{
 
 			printf("%i \n", i);
@@ -517,12 +517,12 @@ void GridManager::CreateConcaveShape(const std::vector<sf::Vector2f>& vertices)
 		}
 
 		if (!nodes[prev].isReflex)
-			if (ears.find(prev) == ears.end() && IsEar(nodes[prev], nodes, vertices));
-		ears[prev] = prev;
+			if (ears.find(prev) == ears.end() && IsEar(nodes[prev], nodes, vertices)) //; not sure why this was here
+				ears[prev] = prev;
 
 		if (!nodes[next].isReflex)
-			if (ears.find(next) == ears.end() && IsEar(nodes[next], nodes, vertices));
-		ears[next] = next;
+			if (ears.find(next) == ears.end() && IsEar(nodes[next], nodes, vertices)) //; not sure why this was here
+				ears[next] = next;
 
 		steps++;
 	}
@@ -545,7 +545,7 @@ void GridManager::CreateConvexShape(const std::vector<sf::Vector2f>& vertices)
 	shape.setPointCount(vertices.size());
 	bool isConcave = false;
 	int pointCount = vertices.size();
-	for (unsigned int i = 0; i < pointCount; ++i)
+	for (int i = 0; i < pointCount; ++i)
 	{
 		if (sfmath::IsReflex(vertices[i], vertices[sfmath::Mod((i - 1), pointCount)], vertices[sfmath::Mod((i + 1), pointCount)]))
 		{
