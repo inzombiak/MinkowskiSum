@@ -8,7 +8,7 @@ aware that this is not an optimal implementation, just an implementation.
 
 Note 2: I had a lot of difficulty understanding the paper by Baram, mostly what the collision/intersection tests are for (probably
 because M-sum is for collision detection itself so seems odd to use another collision detection method to build somethign thats used for collision detection).
-I've managed to get this program to work for a lot of cases, but there are still bugs. I'll come back to it later and try to fix them.
+I've managed to get this program to work for a lot of cases, but there are still bugs. I'll come back to it later and try to fix them. Also, I left commented code in there in case changes cause bugs.
 
 I'll probably add buttons later, but until then
 
