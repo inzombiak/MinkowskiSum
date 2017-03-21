@@ -8,14 +8,14 @@ I'll probably add buttons later, but until then
 ## Controls:
  * Q - switches between drawing and selecting mode. When drawing a little red dot will follow the cursor
  * Drawing Mode:
-  * Left Click - place vertex
-  * Space - links the verices in the order they were placed. Note: Theres no testing for non-simple polygons yet, so KISS
+   * Left Click - place vertex
+   * Space - links the verices in the order they were placed. Note: Theres no testing for non-simple polygons yet, so KISS
  * Selecting Mode:
-  * Left Click and Drag - move a shape around
-  * Left Click, Hold + Delete/Backspace - delete shape
-  * Ctrl + Left Click - marks a shape. If 2 shapes are selected B replaces A and the new shape becomes B
-  * Keyboard/Numpad "+" - calculates Minkowski sum (A + B)
-  * Keyboard/Numpad "-" - calculates Minkowski difference (A - B)
+   * Left Click and Drag - move a shape around
+   * Left Click, Hold + Delete/Backspace - delete shape
+   * Ctrl + Left Click - marks a shape. If 2 shapes are selected B replaces A and the new shape becomes B
+   * Keyboard/Numpad "+" - calculates Minkowski sum (A + B)
+   * Keyboard/Numpad "-" - calculates Minkowski difference (A - B)
 
 ## Requirements:
 
