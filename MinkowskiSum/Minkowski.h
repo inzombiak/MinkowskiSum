@@ -20,14 +20,18 @@ private:
 	};
 
 	//Constructs the convolution
+	//My implementaiton, still working out some bugs.
 	void ReducedConvolution(const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices);
+	void CalculateCycle(int i0, int j0, const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices);
+
+	//CGAL implementation I use for refrence
 	void ReducedConvolution_CGAL(const std::vector<int>& aReflexIndices, const std::vector<int>& bReflexIndices);
 	//Constructs adjacency matrix;
 	void ConstructAdjacencyMatrix();
 	//Cleans up the adjacency matrix and vertices, merging points that are close to each other
-	void MergePoints();
+	//void MergePoints();
 	//Removes duplicate edges. Again not an optimized function
-	void RemoveDuplicateEdges();
+	//void RemoveDuplicateEdges();
 	//Mark dangling edges
 	void MarkRemainingDanglingEdges();
 	//Splits edges at intersection points. At this point, I want to move on to other projects, so I'm just going to brute force it
@@ -42,7 +46,7 @@ private:
 	bool BestDirection(const sf::Vector2f& start, const sf::Vector2f& end, const std::vector<int> edgeIDs, const int targetID, sf::Vector2f& outStart, sf::Vector2f& outEnd, int& outID);
 
 	//Traces loop starting from e
-	Loop RecordLoop(int startIndex);
+	Loop RecordLoop(int startIndex, const int targetID);
 
 	//Used during convolution construction
 	typedef std::pair<int, int> VisitedEdge;
@@ -54,6 +58,7 @@ private:
 	std::vector<sf::Vector2f> m_bDirections;
 
 	std::vector<sf::Vector2f> m_convolution;
+	std::vector<sf::Vector2f> m_convolution2;
 	std::vector<sf::Vector2f> m_convolutionVertices;
 	std::map<sf::Vector2f, int, sfmath::Vector2fComperator> m_vertexToIndex;
 	std::vector<std::vector<int>> m_adjacencyMatrix;
@@ -66,7 +71,5 @@ private:
 
 };
 
-//662, 810
-	
 
 #endif

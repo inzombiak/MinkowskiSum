@@ -121,7 +121,7 @@ bool sfmath::RayLineIntersect(const Ray& ray, const sf::Vector2f a, const sf::Ve
 	float u = (Cross(originDiff, ray.direction)) / dirCross;
 
 	//Since t is for ray it just needs to be >= 0 and u needs to between 0 and 1
-	return (t >= 0 & u >= 0 & u <= 1);
+	return ((t >= 0) & (u >= 0) & (u <= 1));
 }
 
 bool sfmath::IsReflex(const sf::Vector2f& p, const sf::Vector2f& prev, const sf::Vector2f& next, bool counterClockwise)
