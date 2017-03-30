@@ -37,5 +37,5 @@ SFML for rendering.
    * Wein, Ron. "Exact and efficient construction of planar Minkowski sums using the convolution method." European symposium on algorithms. Springer Berlin Heidelberg, 2006. [(link)](https://pdfs.semanticscholar.org/b049/3b89b18d785ca81427404ec78d7ce6602ceb.pdf)
    
 ## See Also:
-* [GJK distance calculator] (https://github.com/inzombiak/GJK)
-* [Orbital physics engine] (https://github.com/inzombiak/Orbitals)
+* [GJK distance calculator](https://github.com/inzombiak/GJK)
+* [Orbital physics engine](https://github.com/inzombiak/Orbitals)
