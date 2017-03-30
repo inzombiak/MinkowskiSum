@@ -7,19 +7,19 @@ Note: A lot of the functions are not optimized. I'll try to mark them at some po
 aware that this is not an optimal implementation, just an implementation.
 
 Note 2: I had a lot of difficulty understanding the paper by Baram, mostly what the collision/intersection tests are for (probably
-because M-sum is for collision detection itself so seems odd to use another collision detection method to build somethign thats used for collision detection).
+because M-sum is for collision detection itself so seems odd to use another collision detection method to build something that’s used for collision detection).
 I've managed to get this program to work for a lot of cases, but there are still bugs. I'll come back to it later and try to fix them. Also, I left commented code in there in case changes cause bugs.
 
 I'll probably add buttons later, but until then
 
 ## Controls:
- * Q - switches between drawing and selecting mode. When drawing a little red dot will follow the cursor
+ * Q - switches between drawing and selecting mode. When drawing, a little red dot will follow the cursor
  * Drawing Mode:
    * Left Click - place vertex
-   * Space - links the verices in the order they were placed. Note: Theres no testing for non-simple polygons yet, so KISS
+   * Space - links the vertices in the order they were placed. Note: There is no testing for non-simple polygons yet, so KISS
  * Selecting Mode:
    * Left Click and Drag - move a shape around
-   * Left Click, Hold + Delete/Backspace - delete shape
+   * Hold Left Click + Delete/Backspace - delete shape
    * Ctrl + Left Click - marks a shape. If 2 shapes are selected B replaces A and the new shape becomes B
    * Keyboard/Numpad "+" - calculates Minkowski sum (A + B)
    * Keyboard/Numpad "-" - calculates Minkowski difference (A - B)
@@ -28,7 +28,7 @@ I'll probably add buttons later, but until then
 
 SFML for rendering.
 
-## Refrences:
+## References:
  * Ear Clipping
    * Eberly, David. "Triangulation by ear clipping." Geometric Tools (2008). [(link)](https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf)
  * Minkowski Sum/Difference
@@ -37,5 +37,5 @@ SFML for rendering.
    * Wein, Ron. "Exact and efficient construction of planar Minkowski sums using the convolution method." European symposium on algorithms. Springer Berlin Heidelberg, 2006. [(link)](https://pdfs.semanticscholar.org/b049/3b89b18d785ca81427404ec78d7ce6602ceb.pdf)
    
 ## See Also:
-* [GJK distance calculator](https://github.com/inzombiak/GJK)
-* [Orbital physics engine](https://github.com/inzombiak/Orbitals)
+* [GJK distance calculator] (https://github.com/inzombiak/GJK)
+* [Orbital physics engine] (https://github.com/inzombiak/Orbitals)
