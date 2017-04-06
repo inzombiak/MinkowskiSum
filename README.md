@@ -24,9 +24,8 @@ I'll probably add buttons later, but until then
    * Keyboard/Numpad "+" - calculates Minkowski sum (A + B)
    * Keyboard/Numpad "-" - calculates Minkowski difference (A - B)
 
-## Requirements:
-
-SFML for rendering.
+## Build Requirements:
+SFML 2.4.2 for rendering
 
 ## References:
  * Ear Clipping
